@@ -3,7 +3,7 @@ from fastai.learner import *
 from fastai.vision.all import *
 
 from lib.models.lenet import LeNet
-from lib.utils import AutoSaveCallback
+from lib.utils.misc import AutoSaveCallback
 
 __all__ = ['get_dls_mnist','mnist_classifier']
 
@@ -28,5 +28,5 @@ def mnist_classifier(data=None, model=None, lr=1e-3, model_name="cls_mnist", sta
     learn.start_epoch = start_epoch
   else:
     learn.start_epoch = 0
-  learn.add_cbs([AutoSaveCallback(model_name='cls_mnist')])
+  learn.add_cbs([AutoSaveCallback(model_name='od_voc')])
   return learn
