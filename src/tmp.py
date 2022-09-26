@@ -1,36 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 from fastai.data.all import *
 from fastai.test_utils  import *
 from fastai.callback.all import *
@@ -38,24 +5,34 @@ from fastai.learner import *
 from fastai.vision.all import *
 from pandas import DataFrame
 from pyparsing import dblSlashComment
-from pyrsistent import v
 from sklearn.model_selection import train_test_split
 import posixpath
 
-from lib.utils.misc import get_annotations_voc
+from lib.utils.callbacks import AutoPlotCallback, AutoSaveCallback
+from lib.utils.dataloaders import dls_mnist
+from lib.utils.learners import create_learner
+from lib.models.lenet import LeNet
 
 
-def get_coco_tiny(source):
-  annotation_file = os.path.join(source, 'train.json')
-  images, lbl_bboxes = get_annotations(annotation_file, prefix=os.path.join(source, 'train\\'))
-  lbls, bboxes = zip(*lbl_bboxes)
-  return [list(o) for o in zip(images, lbls, bboxes)]
 
-def get_voc(source):
-  images, lbl_bboxes = get_annotations_voc(source)
-  lbls, bboxes = zip(*lbl_bboxes)
-  images = L(images).map(lambda e: os.path.join(source, 'JPEGImages', e))
-  return [list(o) for o in zip(images, lbls, bboxes)]
+def train_test():
+  dls = dls_mnist(num_workers=0)
+  model = LeNet()
+  cbs = AutoSaveCallback()
+  learn = create_learner(dls, model, cbs, 'test')
+  learn.fit(10)
+
+
+def load_test():
+  cb = AutoSaveCallback()
+  p = Path('models/test/lenet/metrics')
+  cb.load('001', p)
+  
+
+if __name__ == '__main__':
+  load_test()
+
+
 
 # mnist = DataBlock(blocks=[ImageBlock(PILImageBW), CategoryBlock()],
 #                   get_items=ImageGetter(folders=['training']),
@@ -76,6 +53,8 @@ def get_voc(source):
 #                       getters=[lambda o: o[0], lambda o: o[1], lambda o: o[2]],
 #                       n_inp=1)
 # source = untar_data(URLs.COCO_TINY)
+# db = coco_tiny
+# ds = db.datasets(source)
 
 # voc = DataBlock(blocks=[ImageBlock(PILImage), BBoxBlock, BBoxLblBlock(add_na=True)],
 #                 get_items=get_voc,
@@ -84,8 +63,17 @@ def get_voc(source):
 #                 n_inp=1)
 # source = 'D:\grapefruit\data\VOC\VOCdevkit\VOC2007'
 
-# db = voc
+# db = coco_tiny
 # ds = db.datasets(source)
+# img, bbox, lbl = ds[23]
+# print(bbox)
+# resizer = Pipeline([PointScaler(do_scale=False), Resize((256, 256), ResizeMethod.Pad, pad_mode=PadMode.Zeros)])
+# #resizer = Resize(256, ResizeMethod.Pad, pad_mode=PadMode.Zeros)
+# img = resizer(img)
+# bbox = resizer(bbox)
+# print(bbox)
+# LabeledBBox(bbox, ds.vocab[lbl]).show(ctx=img.show())
+# plt.show()
 
 # def _duple(x):
 #   return x * 4
@@ -98,8 +86,18 @@ def get_voc(source):
 #   print(b[1].img_size, b[0].shape)
 #   train_dl.show_batch(b)
 #   plt.show()
-TensorImage
-file_name = r'D:\grapefruit\data\test\chelsea.png'
 
-img = PILImage.create(file_name)
-pass
+# path = untar_data(URLs.CAMVID_TINY)
+# dls = SegmentationDataLoaders.from_label_func(
+#     path, bs=8, fnames = get_image_files(path/"images"),
+#     label_func = lambda o: path/'labels'/f'{o.stem}_P{o.suffix}',
+#     codes = np.loadtxt(path/'codes.txt', dtype=str),
+#     num_workers=0
+# )
+# def main():
+#   learn = unet_learner(dls, resnet34)
+#   learn.fine_tune(8)
+#   learn.show_results(max_n=6, figsize=(7,8))
+
+# if __name__ == '__main__':
+#   main()
