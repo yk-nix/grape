@@ -9,7 +9,6 @@ from math import sqrt
 from torch import Tensor, arange, float32, meshgrid, cat, stack
 from typing import List, Tuple
 
-
 def point_form(boxes):
     """ Convert prior_boxes to (xmin, ymin, xmax, ymax)
     representation for comparison to point form ground truth data.
@@ -174,7 +173,7 @@ def generate_anchor_boxes(anchor_ratios: List[List],
         boxes.append((shifts.view(-1,1,4) + generate_cell_boxes(anchor_ratios[i], anchor_size_limits[i]).view(1,-1,4)).reshape(-1,4))
     boxes = cat(boxes).clamp_(0, image_size)
     return boxes
-
+    
 def nms(boxes: Tensor,     # shape: n x 4
         scores: Tensor,    # shape: n x num_classes  (0 is background)
         iou_threshold: float = 0.5,

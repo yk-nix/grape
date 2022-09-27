@@ -3,8 +3,12 @@ from typing import List, Tuple
 from torch import Tensor, stack, cat, atleast_2d
 from torch.nn import Module, Conv2d, Sequential, ReLU, BatchNorm2d, functional
 
-from lib.utils.boxes import generate_anchor_boxes, match, encode, center_form, hard_negative_mining
-from lib.models.vgg import vgg16, vgg16_bn, vgg11, vgg11_bn, vgg13, vgg13_bn, vgg19, vgg19_bn
+from .utils import generate_anchor_boxes, match, encode, center_form, hard_negative_mining
+from .vgg import vgg16, vgg16_bn, vgg11, vgg11_bn, vgg13, vgg13_bn, vgg19, vgg19_bn
+
+
+__all__= ['SSD', 'SSDLoss']
+
 _backbones = {
     'vgg11' : vgg11,
     'vgg13' : vgg13,
