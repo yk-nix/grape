@@ -25,7 +25,7 @@ def _get_voc(source:Any):
 def _duple(x):
   return x * 8
 
-def dls_voc(source:Any=None):
+def dls_voc(source:Any=None, **kwargs):
   if source is None:
     source = Path('data/VOC/VOC2007/VOCdevkit/VOC2007')
   db = DataBlock(blocks=[ImageBlock(PILImage), BBoxBlock, BBoxLblBlock(add_na=True)],
@@ -37,4 +37,5 @@ def dls_voc(source:Any=None):
   return ds.dataloaders(bs=1, num_workers=0,
                         after_item=[BBoxLabeler(), PointScaler(), ToTensor(), Resize(304, ResizeMethod.Pad, PadMode.Zeros)],
                         before_batch=[_duple],
-                        after_batch=[IntToFloatTensor(), *aug_transforms()])
+                        after_batch=[IntToFloatTensor(), *aug_transforms()],
+                        **kwargs)

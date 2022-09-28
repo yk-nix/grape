@@ -29,7 +29,7 @@ def fit(self:Learner, n_epoch, lr=None, wd=None, cbs=None, reset_opt=False, star
     self._with_events(self._do_fit, 'fit', CancelFitException, self._end_cleanup)
 
 @delegates(Learner.__init__)
-def create_learner(name, dls, model, cbs, loss_func, opt_func=partial(SGD, mom=0.9), lr=1e-3, **kwargs):
+def create_learner(name, dls, model, cbs, loss_func, opt_func, lr=1e-3, **kwargs):
   model_name = getattr(model, 'name', '')
   return Learner(dls, model, lr=lr, cbs=cbs, loss_func=loss_func, opt_func=opt_func, path=f'weights/{name}', model_dir=f'{model_name}', **kwargs)
 

@@ -9,16 +9,15 @@ from lib.exfastai.learners import create_learner
 from lib.exfastai.callbacks import AutoSaveCallback
 
 def voc_train():
-  # source: Path('D:\grapefruit\data\VOC\VOCdevkit\VOC2007')
   dls = dls_voc()
-  model = SSD(num_classes=21)
+  model = SSD(num_classes=len(dls.vocab))
   cbs = [AutoSaveCallback()]
-  learn = create_learner('voc', dls, model, cbs, SSDLoss(model))
-  learn.fit(1)
+  learn = create_learner('voc', dls, model, cbs, SSDLoss(model), partial(SGD, mom=0.9))
+  learn.fit(10, start_epoch=1)
   
 if __name__ == '__main__':
   sys = platform.system()
-  wd = os.path.abspath('.')
-  if sys == 'Linux' and  wd != '/data/grapefruits':
-    raise ValueError(f'Wrong working directory: {wd}')
+  cwd = os.path.abspath('.')
+  if sys == 'Linux' and  cwd != '/data/grapefruits':
+    raise ValueError(f'Wrong working directory: {cwd}')
   voc_train()

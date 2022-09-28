@@ -93,7 +93,7 @@ def after_epoch(self: Recorder):
   
 @patch
 def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=True):
-  fig, ax1 = plt.subplots(1,1)
+  fig, ax1 = plt.gcf(), plt.gca()
   ax1.plot(list(range(skip_start, len(self.losses))), self.losses[skip_start:], label='train')
   if with_valid:
     idx = (np.array(self.iters)<skip_start).sum()
@@ -107,12 +107,11 @@ def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=True):
     ax2 = ax1.twinx()
     ax2.plot(list(range(skip_start, len(self.lrs))), self.lrs[skip_start:], color='green', label='lr')
     ax2.set_ylabel('learning-rate')
-    #ax2.set_xlim(0, len(self.losses[skip_start:]))
     ax2.legend(loc="best")
     handles1, labels1 = ax1.get_legend_handles_labels()
     handles2, labels2 = ax2.get_legend_handles_labels()
     plt.legend(handles1 + handles2, labels1 + labels2, loc='upper right')
-    fig.subplots_adjust(right=0.8)
+    fig.subplots_adjust(right=0.85)
 
 ## save weights and meta-data after each loop
 class AutoSaveCallback(Callback):
@@ -130,6 +129,8 @@ class AutoPlotCallback(Callback):
   
   def after_batch(self):
     plt.clf()
+    if self.learn.epoch > 900:
+      epoch = self.learn.epoch
     self.learn.recorder.plot_loss()
     plt.pause(0.0001)
 

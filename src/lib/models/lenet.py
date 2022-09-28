@@ -32,4 +32,4 @@ class LeNet(Module):
         x = x.reshape(b, -1)
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
-        return self.fc3(x)
+        return self.relu(self.fc3(x))
