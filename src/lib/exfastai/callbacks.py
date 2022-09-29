@@ -82,7 +82,7 @@ from fastprogress.fastprogress import format_time
 @patch
 def after_epoch(self: Recorder):
   "Store and log the loss/metric values"
-  if self.smooth_loss.count == 0:
+  if self.smooth_loss.count == 0 and len(self.values) > 0:
     self.log += self.values[self.epoch]
   self.learn.final_record = self.log[1:].copy()
   if self.add_time: self.log.append(format_time(time.time() - self.start_epoch))

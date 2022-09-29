@@ -6,7 +6,7 @@ __all__=['create_learner']
 
 @patch
 @delegates(Recorder.plot_loss)
-def plot(self:Learner, epoch:int, with_lr=True, **kwargs):
+def plot(self:Learner, epoch:int, with_lr=False, **kwargs):
   if self.recorder:
     self.recorder.load(str(epoch-1))
     self.recorder.plot_loss(with_lr=with_lr, **kwargs)
