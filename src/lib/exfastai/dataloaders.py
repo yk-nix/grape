@@ -2,8 +2,9 @@ from fastai.data.all import *
 from fastai.vision.all import *
 
 from .misc import get_annotations_voc
+from .transforms import PointScalerReverse
 
-__all__=['dls_mnist', 'dls_voc']
+__all__=['dls_mnist', 'dls_voc', 'dls_voc_tiny']
 
 
 ## dataloaders on MNIST dataset
@@ -12,7 +13,6 @@ def dls_mnist(source:list=None, **kwargs):
     source = os.path.join(untar_data(URLs.MNIST), 'testing')
   db = DataBlock([ImageBlock(PILImageBW), CategoryBlock], get_items=get_image_files, get_y=parent_label)
   return db.dataloaders(source, bs=8, splitter=RandomSplitter(valid_pct=0.3, seed=20220922), **kwargs)
-
 
 
 ## dataloaders on VOC dataset
@@ -25,6 +25,12 @@ def _get_voc(source:Any):
 def _duple(x):
   return x * 8
 
+def _unscale_tensorbbox(x:TensorBBox):
+  sz = x.img_size
+  
+def _debug_break(x):
+  return x
+
 def dls_voc(source:Any=None, **kwargs):
   if source is None:
     source = Path('data/VOC/VOC2007/VOCdevkit/VOC2007')
@@ -35,7 +41,12 @@ def dls_voc(source:Any=None, **kwargs):
                  n_inp=1)
   ds = db.datasets(source)
   return ds.dataloaders(bs=1, num_workers=0,
-                        after_item=[BBoxLabeler(), PointScaler(), ToTensor(), Resize(304, ResizeMethod.Pad, PadMode.Zeros)],
+                        after_item=[BBoxLabeler(), PointScaler(), Resize(304, ResizeMethod.Pad, PadMode.Zeros), ToTensor()],
                         before_batch=[_duple],
-                        after_batch=[IntToFloatTensor(), *aug_transforms()],
+                        after_batch=[IntToFloatTensor(), *aug_transforms(), PointScalerReverse(order=90)],
                         **kwargs)
+  
+def dls_voc_tiny(source:Any=None, **kwargs):
+  if source is None:
+    source = Path('data/voc_tiny')
+  return dls_voc(source, **kwargs)
