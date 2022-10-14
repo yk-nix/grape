@@ -2,7 +2,7 @@ from fastai.data.all import *
 from fastai.callback.all import *
 from fastai.learner import *
 
-__all__=['AutoPlotCallback', 'AutoSaveCallback']
+__all__=['AutoPlotCallback', 'AutoSaveCallback', 'TestSaveCallback']
 
 
 def _save_recorder(file, recorder: Recorder):
@@ -113,13 +113,32 @@ def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=True):
     plt.legend(handles1 + handles2, labels1 + labels2, loc='upper right')
     fig.subplots_adjust(right=0.85)
 
+
 ## save weights and meta-data after each loop
 class AutoSaveCallback(Callback):
   order = 99
+  def after_loss(self):
+    if torch.isnan(self.learn.loss):
+      self.learn.save(f'error')
+      self.learn.recorder(f'error')
+      getattr(self.learn, 'save_input')(f'error_input')
+      exit()
+    
   def after_epoch(self):
     if self.recorder.smooth_loss.count > 0:
       self.learn.save(f'{self.learn.epoch}')
       self.learn.recorder.save(f'{self.learn.epoch}')
+
+## test-save-callback
+class TestSaveCallback(Callback):
+  order = 99
+  saved = False
+  def after_loss(self):
+    if not self.saved:
+      self.learn.save(f'error_{self.learn.epoch}')
+      self.learn.recorder.save(f'error_{self.learn.epoch}')
+      getattr(self.learn, 'save_input')(f'error_input_{self.learn.epoch}')
+      self.saved = True
 
 ## plot train-loss while training
 class AutoPlotCallback(Callback):

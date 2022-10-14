@@ -1,17 +1,7 @@
 from fastai.data.all import *
 from fastai.vision.all import *
 from xml.dom.minidom import parse
-
-def get_kwarg(key:str, kwargs:dict, default_value:Any=None,  pop:bool=True) -> Any:
-  keys = kwargs.keys()
-  for k in keys:
-    if key.lower() == k.lower():
-      value = kwargs[k]
-      if pop:
-        del kwargs[k]
-      return value
-  return default_value
-  
+ 
 def get_annotations_voc(path: Any):
   xmls = get_files(path, extensions='.xml', folders=['annotations', 'Annotations'])
   images, bbox_labels = [], []
@@ -42,13 +32,3 @@ def get_voc(source):
   lbls, bboxes = zip(*lbl_bboxes)
   images = L(images).map(lambda e: os.path.join(source, 'JPEGImages', e))
   return [list(o) for o in zip(images, lbls, bboxes)]
-
-def point_scale_boxes(boxes:Tensor,  # shape: n x 4
-                      image_size):
-    scaler = PointScaler()
-    scaler.sz = image_size
-    _boxes = []
-    for i in range(len(boxes)):
-        box = boxes[i]
-        _boxes.append(scaler(TensorBBox.create(box, img_size=image_size)))
-    return torch.cat(_boxes)

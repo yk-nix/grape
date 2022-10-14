@@ -27,7 +27,16 @@ def fit(self:Learner, n_epoch, lr=None, wd=None, cbs=None, reset_opt=False, star
     self.opt.set_hypers(lr=self.lr if lr is None else lr)
     self.n_epoch = n_epoch
     self._with_events(self._do_fit, 'fit', CancelFitException, self._end_cleanup)
-
+    
+@patch
+def save_input(self:Learner, file, ext=".pth"):
+  input = {
+    'xb': getattr(self, 'xb', None),
+    'yb': getattr(self, 'yb', None)
+  }
+  file = join_path_file(file, Path(self.path/self.model_dir), ext)
+  torch.save(input, file)
+  
 @delegates(Learner.__init__)
 def create_learner(name, dls, model, cbs, loss_func, opt_func, lr=1e-3, **kwargs):
   model_name = getattr(model, 'name', '')
