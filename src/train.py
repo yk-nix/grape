@@ -6,12 +6,12 @@ from fastai.vision.all import *
 from lib.models.ssd import SSD
 from lib.exfastai.dataloaders import dls_voc
 from lib.exfastai.learners import create_learner
-from lib.exfastai.callbacks import AutoSaveCallback
+from lib.exfastai.callbacks import AutoPlotCallback, AutoSaveCallback
 from lib.exfastai.losses import SSDLossFlat
 
 
 def dls_test(dls):
-  train_dl, valid_dl = dls
+  train_dl, valid_dl = dls_voc()
   for i, x in enumerate(train_dl):
     print(i)
   for i, x in enumerate(valid_dl):
@@ -19,12 +19,12 @@ def dls_test(dls):
 
 def voc_train():
   dls = dls_voc()  
-  # model = SSD(num_classes=len(dls.vocab))
-  # cbs = [AutoSaveCallback()]
-  # loss_func = SSDLossFlat(ssd=model)
-  # opt_func = partial(SGD, mom=0.9)
-  # learn = create_learner('voc', dls, model, cbs, loss_func, opt_func)
-  # learn.fit(10, start_epoch=0)
+  model = SSD(num_classes=len(dls.vocab))
+  cbs = [AutoSaveCallback()]
+  loss_func = SSDLossFlat(ssd=model)
+  opt_func = partial(SGD, mom=0.9)
+  learn = create_learner('voc', dls, model, cbs, loss_func, opt_func)
+  learn.fit(10, start_epoch=0)
   
 if __name__ == '__main__':
   sys = platform.system()

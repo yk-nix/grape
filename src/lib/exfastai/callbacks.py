@@ -155,3 +155,9 @@ class AutoPlotCallback(Callback):
 
   def after_fit(self):
     plt.ioff()
+    
+## override
+@patch
+def after_batch(cb:ProgressCallback, self):
+  self.pbar.update(self.iter+1)
+  if hasattr(self, 'smooth_loss'): self.pbar.comment = f'{self.loss:.4f}->{self.smooth_loss:.4f}'

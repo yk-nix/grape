@@ -34,9 +34,11 @@ def _debug_break(x):
 def dls_voc(source:Any=None, **kwargs):
   if source is None:
     source = Path('data/VOC/VOC2007/VOCdevkit/VOC2007')
+  valid_pct = getattr(kwargs, 'valid_pct', 0.1)
+  seed = getattr(kwargs, 'seed', 20220927)
   db = DataBlock(blocks=[ImageBlock(PILImage), BBoxBlock, BBoxLblBlock(add_na=True)],
                  get_items=_get_voc,
-                 splitter=RandomSplitter(valid_pct=0.2, seed=20220927),
+                 splitter=RandomSplitter(valid_pct=valid_pct, seed=seed),
                  getters=[lambda o: o[0], lambda o: o[1], lambda o: o[2]],
                  n_inp=1)
   ds = db.datasets(source)
