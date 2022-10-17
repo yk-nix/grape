@@ -2,9 +2,36 @@ from fastai.data.all import *
 from fastai.callback.all import *
 from fastai.learner import *
 
-__all__=['AutoPlotCallback', 'AutoSaveCallback', 'TestSaveCallback']
+from fastprogress.fastprogress import format_time
+
+__all__=['AutoPlotCallback']
 
 
+    
+
+
+#----------------------------------------------------------------------------
+# override Recorder
+## plot train-loss while training
+class AutoPlotCallback(Callback):
+  order = 90
+  def before_epoch(self):
+    plt.ion()
+  
+  def after_batch(self):
+    plt.clf()
+    if self.learn.epoch > 900:
+      epoch = self.learn.epoch
+    self.learn.recorder.plot_loss()
+    plt.pause(0.0001)
+
+  def after_fit(self):
+    plt.ioff()
+
+
+
+#----------------------------------------------------------------------------
+# override Recorder
 def _save_recorder(file, recorder: Recorder):
   _states_dict = {
     'lrs': recorder.lrs,
@@ -41,22 +68,11 @@ def _restore_recorder(file, recorder: Recorder, start_epoch):
   recorder.train_metrics = _state_dict['train_metrics']
   recorder.valid_metrics = _state_dict['valid_metrics']
   recorder.metric_names = _state_dict['metric_names']
-
-@patch
-def save(self:Recorder, file, metric_dir='metrics', ext='.meta'):
-  if self.learn:
-    file = join_path_file(file, Path(self.learn.path/self.learn.model_dir/metric_dir), ext)
-  else:
-    file = join_path_file(file, Path(metric_dir), ext)
-  _save_recorder(file, self)
   
 @patch
-def load(self:Recorder, file, metric_dir='metrics', ext='.meta', start_epoch=None):
-  if self.learn:
-    file = join_path_file(file, Path(self.learn.path/self.learn.model_dir/metric_dir), ext)
-  else:
-    file = join_path_file(file, Path(metric_dir), ext)
-  _restore_recorder(file, self, start_epoch)
+def __init__(self:Recorder, add_time=True, train_metrics=False, valid_metrics=True, beta=0.98, auto_save=True):
+  store_attr('add_time,train_metrics,valid_metrics,auto_save')
+  self.loss,self.smooth_loss = AvgLoss(),AvgSmoothLoss(beta=beta)
   
 @patch
 def before_fit(self:Recorder):
@@ -77,8 +93,64 @@ def before_fit(self:Recorder):
     if self.add_time: names.append('time')
     self.metric_names = 'epoch'+names
     self.smooth_loss.reset()
+  
+@patch
+def after_loss(self:Recorder):
+  if torch.isnan(self.learn.loss) or torch.isinf(self.learn.loss):
+    self.batch_canceled = True
+    self.save_error()
+    raise CancelBatchException
     
-from fastprogress.fastprogress import format_time
+@patch
+def after_batch(self:Recorder):
+  batch_canceled = getattr(self, 'batch_canceled', False)
+  if batch_canceled:  # if this batch is canceled, do not recorde its loss value
+    self.batch_canceled = False
+    return
+  "Update all metrics and records lr and smooth loss in training"
+  if len(self.yb) == 0: return
+  mets = self._train_mets if self.training else self._valid_mets
+  for met in mets: met.accumulate(self.learn)
+  if not self.training: return
+  self.lrs.append(self.opt.hypers[-1]['lr'])
+  self.losses.append(self.smooth_loss.value)
+  self.learn.smooth_loss = self.smooth_loss.value
+  
+@patch
+def _get_file_path(self:Recorder, file_name, sub_dir, ext):
+  if self.learn:
+    file = join_path_file(file_name, Path(self.path/self.model_dir/sub_dir), ext)
+  else:
+    file = join_path_file(file_name, Path(sub_dir), ext)
+  return file
+
+@patch
+def save_error(self:Recorder, model_file_name=None, input_file_name=None,  sub_dir='errors', ext='.pth', save_model=True, save_input=True):
+  if self.learn:
+    suffix = f'{self.learn.epoch:03d}_{self.learn.iter:05d}'
+    if save_model: 
+      model_file_name = f'weight_{suffix}' if model_file_name is None else model_file_name
+      self.learn.save(file_name=model_file_name, sub_dir=sub_dir, ext=ext)
+    if save_input:
+      input_file_name = f'input_{suffix}' if input_file_name is None else input_file_name
+      self.learn.save_input(file_name=input_file_name, sub_dir=sub_dir, ext=ext)
+    
+@patch
+def load_error(self:Recorder, model_file_name=None, input_file_name=None, sub_dir='erros', ext='.pth', load_model=True, load_input=True):
+  if self.learn:
+    if load_model: self.learn.load(file_name=model_file_name, sub_dir=sub_dir, ext=ext)
+    if load_input: self.learn.load_input(file_name=input_file_name, sub_dir=sub_dir, ext=ext)
+
+@patch
+def save(self:Recorder, file_name, metric_dir='metrics', ext='.meta'):
+  file = self._get_file_path(file_name, sub_dir=metric_dir, ext=ext)
+  _save_recorder(file, self)
+  
+@patch
+def load(self:Recorder, file_name, metric_dir='metrics', ext='.meta', start_epoch=None):
+  file = self._get_file_path(file_name, sub_dir=metric_dir, ext=ext)
+  _restore_recorder(file, self, start_epoch)
+
 @patch
 def after_epoch(self: Recorder):
   "Store and log the loss/metric values"
@@ -89,7 +161,10 @@ def after_epoch(self: Recorder):
   self.logger(self.log)
   if self.smooth_loss.count > 0:
     self.values.append(self.learn.final_record)
-    self.iters.append(getattr(self, 'last_iter_count', 0) + self.smooth_loss.count) 
+    self.iters.append(getattr(self, 'last_iter_count', 0) + self.smooth_loss.count)
+  if self.auto_save:
+    self.learn.save(f'{self.learn.epoch:03d}')
+    self.learn.recorder.save(f'{self.learn.epoch:03d}')
   
 @patch
 def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=True):
@@ -114,63 +189,7 @@ def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=True):
     fig.subplots_adjust(right=0.85)
 
 
-## save weights and meta-data after each loop
-class AutoSaveCallback(Callback):
-  order = 99
-  def after_loss(self):
-    if torch.isnan(self.learn.loss) or torch.isinf(self.learn.loss):
-      suffix = f'{self.epoch:02d}_{self.iter:04d}'
-      self.learn.save(f'error_{suffix}')
-      self.learn.recorder(f'error_{suffix}')
-      getattr(self.learn, 'save_input')(f'error_input_{suffix}')
-      raise CancelBatchException
-    
-  def after_epoch(self):
-    if self.recorder.smooth_loss.count > 0:
-      self.learn.save(f'{self.learn.epoch}')
-      self.learn.recorder.save(f'{self.learn.epoch}')
-
-## test-save-callback
-class TestSaveCallback(Callback):
-  order = 99
-  saved = False
-  def after_loss(self):
-    if not self.saved:
-      self.learn.save(f'error_{self.learn.epoch}')
-      self.learn.recorder.save(f'error_{self.learn.epoch}')
-      getattr(self.learn, 'save_input')(f'error_input_{self.learn.epoch}')
-      self.saved = True
-
-## plot train-loss while training
-class AutoPlotCallback(Callback):
-  order = 90
-  def before_epoch(self):
-    plt.ion()
-  
-  def after_batch(self):
-    plt.clf()
-    if self.learn.epoch > 900:
-      epoch = self.learn.epoch
-    self.learn.recorder.plot_loss()
-    plt.pause(0.0001)
-
-  def after_fit(self):
-    plt.ioff()
-
-## override callback: Recorder.after_batch 
-def after_batch(self:Recorder):
-  "Update all metrics and records lr and smooth loss in training"
-  if len(self.yb) == 0: 
-    return
-  if torch.isnan(self.learn.loss) or torch.isinf(self.learn.loss):
-    return
-  mets = self._train_mets if self.training else self._valid_mets
-  for met in mets: met.accumulate(self.learn)
-  if not self.training: return
-  self.lrs.append(self.opt.hypers[-1]['lr'])
-  self.losses.append(self.smooth_loss.value)
-  self.learn.smooth_loss = self.smooth_loss.value
-           
+#---------------------------------------------------------------------------------------------
 ## override callback: ProgressCallback.after_batch
 @patch
 def after_batch(self:ProgressCallback):
