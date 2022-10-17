@@ -118,11 +118,12 @@ def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=True):
 class AutoSaveCallback(Callback):
   order = 99
   def after_loss(self):
-    if torch.isnan(self.learn.loss):
-      self.learn.save(f'error')
-      self.learn.recorder(f'error')
-      getattr(self.learn, 'save_input')(f'error_input')
-      exit()
+    if torch.isnan(self.learn.loss) or torch.isinf(self.learn.loss):
+      suffix = f'{self.epoch:02d}_{self.iter:04d}'
+      self.learn.save(f'error_{suffix}')
+      self.learn.recorder(f'error_{suffix}')
+      getattr(self.learn, 'save_input')(f'error_input_{suffix}')
+      raise CancelBatchException
     
   def after_epoch(self):
     if self.recorder.smooth_loss.count > 0:
@@ -155,9 +156,23 @@ class AutoPlotCallback(Callback):
 
   def after_fit(self):
     plt.ioff()
-    
-## override
+
+## override callback: Recorder.after_batch 
+def after_batch(self:Recorder):
+  "Update all metrics and records lr and smooth loss in training"
+  if len(self.yb) == 0: 
+    return
+  if torch.isnan(self.learn.loss) or torch.isinf(self.learn.loss):
+    return
+  mets = self._train_mets if self.training else self._valid_mets
+  for met in mets: met.accumulate(self.learn)
+  if not self.training: return
+  self.lrs.append(self.opt.hypers[-1]['lr'])
+  self.losses.append(self.smooth_loss.value)
+  self.learn.smooth_loss = self.smooth_loss.value
+           
+## override callback: ProgressCallback.after_batch
 @patch
-def after_batch(cb:ProgressCallback, self):
+def after_batch(self:ProgressCallback):
   self.pbar.update(self.iter+1)
   if hasattr(self, 'smooth_loss'): self.pbar.comment = f'{self.loss:.4f}->{self.smooth_loss:.4f}'
