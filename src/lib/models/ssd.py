@@ -192,8 +192,7 @@ class SSDLoss(Module):
                ssd:SSD,
                negative_sample_rate:int = 1.0,      # ratio = negative / positive
                encode_variance:List = [1.0, 1.0],
-               match_iou_threshold:float = 0.5,
-               **kwargs) -> None:
+               match_iou_threshold:float = 0.5) -> None:
     super(SSDLoss, self).__init__()
     if not isinstance(ssd, SSD):
       raise ValueError('SSDLoss is only supported for SSD, your model is {ssd.name}')

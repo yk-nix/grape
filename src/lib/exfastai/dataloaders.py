@@ -7,7 +7,8 @@ from .transforms import PointScalerReverse
 __all__=['dls_mnist', 'dls_voc', 'dls_voc_tiny']
 
 
-## dataloaders on MNIST dataset
+#--------------------------------------------------------------------
+# # dataloaders on MNIST dataset
 def dls_mnist(source:list=None, **kwargs):
   if source is None:
     source = os.path.join(untar_data(URLs.MNIST), 'testing')
@@ -15,7 +16,8 @@ def dls_mnist(source:list=None, **kwargs):
   return db.dataloaders(source, bs=8, splitter=RandomSplitter(valid_pct=0.3, seed=20220922), **kwargs)
 
 
-## dataloaders on VOC dataset
+#--------------------------------------------------------------------
+# # dataloaders on VOC dataset
 def _get_voc(source:Any):
   images, lbl_bboxes = get_annotations_voc(source)
   lbls, bboxes = zip(*lbl_bboxes)
@@ -41,7 +43,7 @@ def dls_voc(source:Any=None, **kwargs):
                  splitter=RandomSplitter(valid_pct=valid_pct, seed=seed),
                  getters=[lambda o: o[0], lambda o: o[1], lambda o: o[2]],
                  n_inp=1)
-  ds = db.datasets(source)
+  ds = db.datasets(source)  
   return ds.dataloaders(bs=1, num_workers=0,
                         after_item=[BBoxLabeler(), PointScaler(), Resize(304, ResizeMethod.Pad, PadMode.Zeros), ToTensor()],
                         before_batch=[_duple],
@@ -51,4 +53,9 @@ def dls_voc(source:Any=None, **kwargs):
 def dls_voc_tiny(source:Any=None, **kwargs):
   if source is None:
     source = Path('data/voc_tiny')
+  return dls_voc(source, **kwargs)
+
+def dls_voc_test(source:Any=None, **kwargs):
+  if source is None:
+    source = Path('data/voc_test')
   return dls_voc(source, **kwargs)

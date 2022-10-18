@@ -1,3 +1,4 @@
+from posixpath import isabs
 from fastai.data.all import *
 from fastai.callback.all import *
 from fastai.learner import *
@@ -6,14 +7,10 @@ from fastprogress.fastprogress import format_time
 
 __all__=['AutoPlotCallback']
 
-
-    
-
-
 #----------------------------------------------------------------------------
 # override Recorder
 ## plot train-loss while training
-class AutoPlotCallback(Callback):
+class PlotLossCallback(Callback):
   order = 90
   def before_epoch(self):
     plt.ion()
@@ -23,7 +20,7 @@ class AutoPlotCallback(Callback):
     if self.learn.epoch > 900:
       epoch = self.learn.epoch
     self.learn.recorder.plot_loss()
-    plt.pause(0.0001)
+    plt.pause(0.001)
 
   def after_fit(self):
     plt.ioff()
@@ -70,8 +67,8 @@ def _restore_recorder(file, recorder: Recorder, start_epoch):
   recorder.metric_names = _state_dict['metric_names']
   
 @patch
-def __init__(self:Recorder, add_time=True, train_metrics=False, valid_metrics=True, beta=0.98, auto_save=True):
-  store_attr('add_time,train_metrics,valid_metrics,auto_save')
+def __init__(self:Recorder, add_time=True, train_metrics=False, valid_metrics=True, beta=0.98, auto_save=True, auto_save_error=False):
+  store_attr('add_time,train_metrics,valid_metrics,auto_save,auto_save_error')
   self.loss,self.smooth_loss = AvgLoss(),AvgSmoothLoss(beta=beta)
   
 @patch
@@ -98,7 +95,8 @@ def before_fit(self:Recorder):
 def after_loss(self:Recorder):
   if torch.isnan(self.learn.loss) or torch.isinf(self.learn.loss):
     self.batch_canceled = True
-    self.save_error()
+    if self.auto_save_error:
+      self.save_error()
     raise CancelBatchException
     
 @patch
@@ -118,6 +116,8 @@ def after_batch(self:Recorder):
   
 @patch
 def _get_file_path(self:Recorder, file_name, sub_dir, ext):
+  if os.path.isabs(file_name):
+    return file_name
   if self.learn:
     file = join_path_file(file_name, Path(self.path/self.model_dir/sub_dir), ext)
   else:
@@ -163,11 +163,11 @@ def after_epoch(self: Recorder):
     self.values.append(self.learn.final_record)
     self.iters.append(getattr(self, 'last_iter_count', 0) + self.smooth_loss.count)
   if self.auto_save:
-    self.learn.save(f'{self.learn.epoch:03d}')
-    self.learn.recorder.save(f'{self.learn.epoch:03d}')
+    self.learn.save(f'{self.learn.epoch+1:03d}')
+    self.learn.recorder.save(f'{self.learn.epoch+1:03d}')
   
 @patch
-def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=True):
+def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=False):
   fig, ax1 = plt.gcf(), plt.gca()
   ax1.plot(list(range(skip_start, len(self.losses))), self.losses[skip_start:], label='train')
   if with_valid:

@@ -7,20 +7,13 @@ __all__=['create_learner']
 #-------------------------------------------------------------------------
 # override Learner
 @patch
-@delegates(Recorder.plot_loss)
-def plot(self:Learner, epoch:int, with_lr=False, **kwargs):
-  if self.recorder:
-    self.recorder.load(str(epoch-1))
-    self.recorder.plot_loss(with_lr=with_lr, **kwargs)
-
-@patch
 @delegates(load_model)
 def fit(self:Learner, n_epoch, lr=None, wd=None, cbs=None, reset_opt=False, start_epoch=0, device=None, **kwargs):
   if start_epoch != 0:
-    self.load(str(start_epoch-1), device=device, **kwargs)
+    self.load(f'{start_epoch:03d}', device=device, **kwargs)
     recorder = getattr(self, 'recorder', None)
     if recorder:
-      recorder.load(str(start_epoch-1))
+      recorder.load(f'{start_epoch:03d}')
     cbs = L(cbs) + SkipToEpoch(start_epoch)
   with self.added_cbs(cbs):
     if reset_opt or not self.opt: self.create_opt()
@@ -32,6 +25,8 @@ def fit(self:Learner, n_epoch, lr=None, wd=None, cbs=None, reset_opt=False, star
 
 @patch
 def _get_file_path(self:Learner, file_name, sub_dir, ext):
+  if os.path.isabs(file_name):
+    return Path(file_name)
   if sub_dir:
     return join_path_file(file_name, Path(self.path/self.model_dir/sub_dir), ext)
   else:
@@ -47,7 +42,7 @@ def save_input(self:Learner, file_name, sub_dir=None, ext=".pth"):
   torch.save(input, file)
 
 @patch
-def load_input(self:Learner, file_name, sub_dir=None, ext=".pth"):
+def load_input(self:Learner, file_name, sub_dir=None, ext=".pth"):    
   file = self._get_file_path(file_name, sub_dir, ext)
   input = torch.load(file)
   if 'xb' in input.keys():
@@ -73,7 +68,6 @@ def load(self:Learner, file_name, sub_dir=None, ext='.pth', device=None, **kwarg
     load_model(file, self.model, self.opt, device=device, **kwargs)
     nested_attr(self, "accelerator.wait_for_everyone", noop)()
     return self
-  
   
   
 #-------------------------------------------------------------------------
