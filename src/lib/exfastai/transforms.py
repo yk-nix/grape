@@ -49,7 +49,7 @@ def encodes(self:MultiCategorize, o:LabeledBBox):
   return LabeledBBox(o.bbox, TensorMultiCategory([self.vocab.o2i[e] for e in o.lbl]))
 @patch
 def decodes(self:MultiCategorize, o:LabeledBBox):
-  lbl = MultiCategory([self.vocab[e] for e in o.lbl])
+  lbl = [self.vocab[e] for e in o.lbl]
   return LabeledBBox(o.bbox, lbl)
 
 
