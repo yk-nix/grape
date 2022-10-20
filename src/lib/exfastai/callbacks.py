@@ -17,8 +17,6 @@ class PlotLossCallback(Callback):
   
   def after_batch(self):
     plt.clf()
-    if self.learn.epoch > 900:
-      epoch = self.learn.epoch
     self.learn.recorder.plot_loss()
     plt.pause(0.001)
 
@@ -90,6 +88,13 @@ def before_fit(self:Recorder):
     if self.add_time: names.append('time')
     self.metric_names = 'epoch'+names
     self.smooth_loss.reset()
+    
+@patch
+def before_epoch(self:Recorder):
+  "Set timer if `self.add_time=True`"
+  self.cancel_train,self.cancel_valid = False,False
+  if self.add_time: self.start_epoch = time.time()
+  self.log = L(getattr(self, 'epoch', 0)+1)
   
 @patch
 def after_loss(self:Recorder):
@@ -127,7 +132,7 @@ def _get_file_path(self:Recorder, file_name, sub_dir, ext):
 @patch
 def save_error(self:Recorder, model_file_name=None, input_file_name=None,  sub_dir='errors', ext='.pth', save_model=True, save_input=True):
   if self.learn:
-    suffix = f'{self.learn.epoch:03d}_{self.learn.iter:05d}'
+    suffix = f'{self.learn.epoch+1:03d}_{self.learn.iter:05d}'
     if save_model: 
       model_file_name = f'weight_{suffix}' if model_file_name is None else model_file_name
       self.learn.save(file_name=model_file_name, sub_dir=sub_dir, ext=ext)
@@ -163,8 +168,9 @@ def after_epoch(self: Recorder):
     self.values.append(self.learn.final_record)
     self.iters.append(getattr(self, 'last_iter_count', 0) + self.smooth_loss.count)
   if self.auto_save:
-    self.learn.save(f'{self.learn.epoch+1:03d}')
-    self.learn.recorder.save(f'{self.learn.epoch+1:03d}')
+    suffix = f'{self.learn.epoch+1:03d}'
+    self.learn.save(suffix)
+    self.learn.recorder.save(suffix)
   
 @patch
 def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=False):

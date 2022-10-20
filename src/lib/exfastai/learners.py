@@ -6,6 +6,7 @@ __all__=['create_learner']
 
 #-------------------------------------------------------------------------
 # override Learner
+# Cell
 @patch
 @delegates(load_model)
 def fit(self:Learner, n_epoch, lr=None, wd=None, cbs=None, reset_opt=False, start_epoch=0, device=None, **kwargs):

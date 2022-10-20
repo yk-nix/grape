@@ -19,11 +19,11 @@ def dls_test(dls):
 
 def voc_train():
   dls = dls_voc()  
-  model = SSD(num_classes=len(dls.vocab))
+  model = SSD(num_classes=len(dls.vocab), pretrained=False)
   loss_func = SSDLossFlat(ssd=model)
   opt_func = partial(SGD, mom=0.9)
   learn = create_learner('voc', dls, model, None, loss_func, opt_func)
-  learn.fit(10, start_epoch=0)
+  learn.fit(10, start_epoch=2)
   
 if __name__ == '__main__':
   sys = platform.system()

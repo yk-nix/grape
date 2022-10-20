@@ -19,7 +19,7 @@ def get_annotations_voc(path: Any):
       ymax = obj.getElementsByTagName('ymax')[0].childNodes[0].data
       bboxes.append([float(xmin), float(ymin), float(xmax), float(ymax)])
     bbox_labels.append((bboxes, lbls))
-  return images, bbox_labels
+  return images, tuple(bbox_labels)
 
 def get_coco_tiny(source):
   annotation_file = os.path.join(source, 'train.json')

@@ -6,6 +6,32 @@ from .transforms import PointScalerReverse
 
 __all__=['dls_mnist', 'dls_voc', 'dls_voc_tiny']
 
+#--------------------------------------------------------------------
+# override on Datasets
+@patch
+def show(self:Datasets, o, ctx=None, kwargs_list=None):
+  if kwargs_list is None:
+    kwargs_list = [dict()] * len(o)
+  for o_,tl, kwargs in zip(o,self.tls, kwargs_list): ctx = tl.show(o_, ctx=ctx, **kwargs)
+  return ctx
+
+
+#--------------------------------------------------------------------
+# extension-funcitons on Dataloader
+@patch
+def dump(self:DataLoader):
+  print('properties:')
+  print(f'  n: {self.n}')
+  print(f'  bs: {self.bs}')
+  print(f'  shuffle: {self.shuffle}')
+  print(f'  indexed: {self.indexed}')
+  print(f'  drop_last: {self.drop_last}')
+  print(f'  pin_memory: {self.pin_memory}')
+  print(f'  timeout: {self.timeout}')
+  print(f'  device: {self.device}')
+  print(f'  num_workers: {self.num_workers}')
+  print(f'  offs: {self.offs}')
+
 
 #--------------------------------------------------------------------
 # # dataloaders on MNIST dataset
@@ -18,11 +44,17 @@ def dls_mnist(source:list=None, **kwargs):
 
 #--------------------------------------------------------------------
 # # dataloaders on VOC dataset
+def get_voc_vocab():
+  return ['aeroplane',   'bicycle',  'bird',    'boat',      'bottle',
+          'bus',         'car',      'cat',     'chair',     'cow',
+          'diningtable', 'dog',      'horse',   'motorbike', 'person',
+          'pottedplant', 'sheep',    'sofa',    'train',     'tvmonitor']
+
 def _get_voc(source:Any):
   images, lbl_bboxes = get_annotations_voc(source)
   lbls, bboxes = zip(*lbl_bboxes)
   images = L(images).map(lambda e: os.path.join(source, 'JPEGImages', e))
-  return [list(o) for o in zip(images, lbls, bboxes)]
+  return [{'image_file': img, 'bboxes': bbox, 'labels': label} for img, bbox, label in zip(images, lbls, bboxes)]
 
 def _duple(x):
   return x * 8
@@ -45,7 +77,7 @@ def dls_voc(source:Any=None, **kwargs):
                  n_inp=1)
   ds = db.datasets(source)  
   return ds.dataloaders(bs=1, num_workers=0,
-                        after_item=[BBoxLabeler(), PointScaler(), Resize(304, ResizeMethod.Pad, PadMode.Zeros), ToTensor()],
+                        after_item=[PointScaler(), Resize(304, ResizeMethod.Pad, PadMode.Zeros), ToTensor()],
                         before_batch=[_duple],
                         after_batch=[IntToFloatTensor(), *aug_transforms(), PointScalerReverse(order=90)],
                         **kwargs)
