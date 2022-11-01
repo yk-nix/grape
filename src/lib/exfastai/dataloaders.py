@@ -6,6 +6,7 @@ from .transforms import PointScalerReverse
 
 __all__=['dls_mnist', 'dls_voc', 'dls_voc_tiny']
 
+
 #--------------------------------------------------------------------
 # override on Datasets
 @patch
@@ -32,7 +33,6 @@ def dump(self:DataLoader):
   print(f'  num_workers: {self.num_workers}')
   print(f'  offs: {self.offs}')
 
-
 #--------------------------------------------------------------------
 # # dataloaders on MNIST dataset
 def dls_mnist(source:list=None, **kwargs):
@@ -41,75 +41,36 @@ def dls_mnist(source:list=None, **kwargs):
   db = DataBlock([ImageBlock(PILImageBW), CategoryBlock], get_items=get_image_files, get_y=parent_label)
   return db.dataloaders(source, bs=8, splitter=RandomSplitter(valid_pct=0.3, seed=20220922), **kwargs)
 
+def _duple(x):
+  return x * 8
 
 #--------------------------------------------------------------------
 # # dataloaders on VOC dataset
-@delegates(DataBlock.dataloaders)
-class VOCDataLoaders(DataLoaders):
-  vocab = 'aeroplane bicycle bird boat bottle bus car cat chair cow \
-           diningtable dog horse motorbike person pottedplant sheep \
-           sofa train tvmonitor'.split()
-  def __init__(self, source:Any, valid_pct=0.1, seed=20220927, bs=1, num_workers=0, image_size=304, **kwargs):
-    self.source = Path('data/VOC/VOC2007/VOCdevkit/VOC2007') if source is None else Path(source)
-    self.valid_pct = valid_pct
-    self.seed = seed
-    self.spliter = RandomSplitter(valid_pct=valid_pct, seed=seed)
-    self.items = self.get_items()
-    super().__init__(bs=bs, num_workers=num_workers, before_batch=[_duple],
-                     after_item=[PointScaler(), Resize(image_size, ResizeMethod.Pad, PadMode.Zeros), ToTensor()],
-                     after_batch=[IntToFloatTensor(), *aug_transforms(), PointScalerReverse(order=90)],
-                     **kwargs)
-    
-  def _get_items(self):
-    images, lbl_bboxes = get_annotations_voc(self.source)
-    lbls, bboxes = zip(*lbl_bboxes)
-    images = L(images).map(lambda e: os.path.join(self.source, 'JPEGImages', e))
-    return [{'image_file': img, 'bboxes': bbox, 'labels': label} for img, bbox, label in zip(images, lbls, bboxes)]
-
-  @property
-  def datasets(self):
-    return Datasets(items=self.items,
-                    tfms=[lambda x: PILImage.create(x['image_file']),
-                          [lambda x: LabeledBBox(TensorBBox.create(x['bboxes']), MultiCategory(x['labels'])),
-                          MultiCategorize(add_na=True, vocab=self.vocab)]],
-                    splits=self.splits,
-                    input=1)
-
-
-
-
-
-
-def _get_voc(source:Any):
+_voc_vocab = 'aeroplane bicycle bird boat bottle bus car cat chair cow \
+              diningtable dog horse motorbike person pottedplant sheep \
+              sofa train tvmonitor'.split()
+  
+def get_voc_items(source):
   images, lbl_bboxes = get_annotations_voc(source)
   lbls, bboxes = zip(*lbl_bboxes)
   images = L(images).map(lambda e: os.path.join(source, 'JPEGImages', e))
   return [{'image_file': img, 'bboxes': bbox, 'labels': label} for img, bbox, label in zip(images, lbls, bboxes)]
 
-def _duple(x):
-  return x * 8
-
-def dls_voc(source:Any=None, **kwargs):
+@delegates(FilteredBase.dataloaders)
+def dls_voc(source:Any=None, valid_pct=0.1, seed=20220927, bs=1, num_workers=0, image_size=304, **kwargs):
   if source is None:
     source = Path('data/VOC/VOC2007/VOCdevkit/VOC2007')
-  valid_pct = getattr(kwargs, 'valid_pct', 0.1)
-  seed = getattr(kwargs, 'seed', 20220927)
-  items = _get_voc(source)
-  vocab = get_voc_vocab()
+  items = get_voc_items(source)
   splits = RandomSplitter(valid_pct=valid_pct, seed=seed)(items)
-  ds = Datasets(items=items,
-                tfms=[lambda x: PILImage.create(x['image_file']),
-                      [lambda x: LabeledBBox(TensorBBox.create(x['bboxes']), MultiCategory(x['labels'])),
-                       MultiCategorize(add_na=True, vocab=vocab)]
-                      ],
-                splits=splits,
-                input=1)
-  return ds.dataloaders(bs=1, num_workers=0,
-                        after_item=[PointScaler(), Resize(304, ResizeMethod.Pad, PadMode.Zeros), ToTensor()],
-                        before_batch=[_duple],
-                        after_batch=[IntToFloatTensor(), *aug_transforms(), PointScalerReverse(order=90)],
-                        **kwargs)
-  
+  datasets = Datasets(items=items,  splits=splits, n_inp=1,
+                      tfms=[lambda x: PILImage.create(x['image_file']),
+                            lambda x: TensorBBox.create(x['bboxes']),
+                            [lambda x: x['labels'], MultiCategorize(add_na=True, vocab=_voc_vocab)]])
+  return datasets.dataloaders(bs=bs, num_workers=num_workers, before_batch=[_duple],
+                              after_item=[PointScaler(), Resize(image_size, ResizeMethod.Pad, PadMode.Zeros), ToTensor()],
+                              after_batch=[IntToFloatTensor(), *aug_transforms(max_rotate=0., max_warp=0.), PointScalerReverse(order=90)],
+                              **kwargs)
+
 def dls_voc_tiny(source:Any=None, **kwargs):
   if source is None:
     source = Path('data/voc_tiny')

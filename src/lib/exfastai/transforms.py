@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastai.data.all import *
 from fastai.vision.all import *
+from torch import isin
 
 __all__= ['PointScalerReverse']
 
@@ -38,20 +39,3 @@ class PointScalerReverse(Transform):
       else:
         return self.scaler.decodes(x)
 
-#--------------------------------------------------------
-# Override on MutliCategorize
-@patch
-def encodes(self:MultiCategorize, o:LabeledBBox):
-  if not all(elem in self.vocab.o2i.keys() for elem in o.lbl):
-    diff = [elem for elem in o.lbl if elem not in self.vocab.o2i.keys()]
-    diff_str = "', '".join(diff)
-    raise KeyError(f"Labels '{diff_str}' were not included in the training dataset")
-  return LabeledBBox(o.bbox, TensorMultiCategory([self.vocab.o2i[e] for e in o.lbl]))
-@patch
-def decodes(self:MultiCategorize, o:LabeledBBox):
-  lbl = [self.vocab[e] for e in o.lbl]
-  return LabeledBBox(o.bbox, lbl)
-
-
-#--------------------------------------------------------
-# Override on Resize
