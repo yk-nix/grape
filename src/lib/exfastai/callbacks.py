@@ -5,7 +5,7 @@ from fastai.learner import *
 
 from fastprogress.fastprogress import format_time
 
-__all__=['AutoPlotCallback']
+__all__=['PlotLossCallback']
 
 #----------------------------------------------------------------------------
 # override Recorder
@@ -107,17 +107,16 @@ def after_loss(self:Recorder):
 @patch
 def after_batch(self:Recorder):
   batch_canceled = getattr(self, 'batch_canceled', False)
-  if batch_canceled:  # if this batch is canceled, do not recorde its loss value
-    self.batch_canceled = False
-    return
-  "Update all metrics and records lr and smooth loss in training"
-  if len(self.yb) == 0: return
-  mets = self._train_mets if self.training else self._valid_mets
-  for met in mets: met.accumulate(self.learn)
-  if not self.training: return
-  self.lrs.append(self.opt.hypers[-1]['lr'])
-  self.losses.append(self.smooth_loss.value)
-  self.learn.smooth_loss = self.smooth_loss.value
+  if not batch_canceled:  # if this batch is not canceled, do recorde its loss value
+    "Update all metrics and records lr and smooth loss in training"
+    if len(self.yb) == 0: return
+    mets = self._train_mets if self.training else self._valid_mets
+    for met in mets: met.accumulate(self.learn)
+    if not self.training: return
+    self.lrs.append(self.opt.hypers[-1]['lr'])
+    self.losses.append(self.smooth_loss.value)
+    self.learn.smooth_loss = self.smooth_loss.value
+  self.batch_canceled = False  # make sure the next batch should not be skipped
   
 @patch
 def _get_file_path(self:Recorder, file_name, sub_dir, ext):

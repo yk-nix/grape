@@ -2,6 +2,8 @@ from torch.nn import Module
 from torch import Tensor
 import torch.nn as nn
 
+__all__ = ['LeNet']
+
 class LeNet(Module):
     """
     input image: 1 x 28 x 28

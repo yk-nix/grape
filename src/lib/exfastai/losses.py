@@ -3,12 +3,13 @@ import torch.nn.functional as F
 from torchvision.ops import batched_nms as nms
 
 from fastai.losses import *
+from fastai.vision.all import *
 
 from lib.models.ssd import SSDLoss
 
 class SSDLossFlat(BaseLoss):
   y_int = True # y interpolation
-  def __init__(self, ssd, *args, axis=-1, nms_iou_threshold=0.6, top_n=200, **kwargs):
+  def __init__(self, ssd, *args, axis=-1, nms_iou_threshold=0.3, top_n=200, **kwargs):
     self.nms_iou_threshold = nms_iou_threshold
     self.top_n = top_n
     super().__init__(SSDLoss, ssd=ssd, *args, axis=axis, **kwargs)
@@ -38,4 +39,4 @@ class SSDLossFlat(BaseLoss):
       label_list.append(l[i])
       bbox_list.append(b[i])
       score_list.append(s[i])
-    return bbox_list, label_list, score_list
+    return TensorBBox(torch.stack(bbox_list)), TensorMultiCategory(torch.stack(label_list))
