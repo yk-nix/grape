@@ -61,10 +61,10 @@ def save(self:Learner, file_name, sub_dir=None, ext='.pth', **kwargs):
 
 @patch
 @delegates(load_model)
-def load(self:Learner, file_name, sub_dir=None, ext='.pth', device=None, **kwargs):
+def load(self:Learner, file_name, sub_dir=None, ext='.pth', with_opt=True, device=None, **kwargs):
     "Load model and optimizer state (if `with_opt`) from `self.path/self.model_dir/file` using `device`"
     if device is None and hasattr(self.dls, 'device'): device = self.dls.device
-    if self.opt is None: self.create_opt()
+    if self.opt is None and with_opt: self.create_opt()
     file = self._get_file_path(file_name, sub_dir, ext)
     load_model(file, self.model, self.opt, device=device, **kwargs)
     nested_attr(self, "accelerator.wait_for_everyone", noop)()

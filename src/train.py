@@ -20,7 +20,7 @@ def voc_train():
   loss_func = SSDLossFlat(ssd=model)
   opt_func = partial(SGD, mom=0.9)
   learn = create_learner('voc', dls, model, None, loss_func, opt_func)
-  learn.fit(40, start_epoch=20)
+  learn.fit(40, start_epoch=24)
   
 if __name__ == '__main__':
   sys = platform.system()

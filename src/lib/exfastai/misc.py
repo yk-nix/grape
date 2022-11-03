@@ -1,7 +1,10 @@
 from fastai.data.all import *
 from fastai.vision.all import *
 from xml.dom.minidom import parse
- 
+from torchvision.ops import batched_nms as nms
+
+__all__ = ['get_annotations_voc', 'post_predict']
+
 def get_annotations_voc(path: Any):
   xmls = get_files(path, extensions='.xml', folders=['annotations', 'Annotations'])
   images, bbox_labels = [], []
@@ -32,3 +35,22 @@ def get_voc(source):
   lbls, bboxes = zip(*lbl_bboxes)
   images = L(images).map(lambda e: os.path.join(source, 'JPEGImages', e))
   return [list(o) for o in zip(images, lbls, bboxes)]
+
+#---------------------------------------------------------
+## select atmost top_n objects whit score > score_threshold
+def post_predict(self, _scores, _bboxes, top_n, score_threshold):
+  ss, idx = _scores.max(dim=-1)[0].sort(descending=True)
+  top_k = (ss > score_threshold).sum(dim=-1).max().item()
+  if top_k < top_n:
+    top_n = top_k
+  idx = idx.unsqueeze(dim=-1)
+  scores = _scores.gather(1, idx.broadcast_to(_scores.shape))[:,:top_n,:]
+  bboxes = _bboxes.gather(1, idx.broadcast_to(_bboxes.shape))[:,:top_n,:]   
+  scores, labels = scores.max(dim=self.axis)
+  label_list, bbox_list, score_list = [], [], []
+  for b, s, l in zip(bboxes, scores, labels):
+    i = nms(b, s, l, self.nms_iou_threshold)
+    label_list.append(l[i])
+    bbox_list.append(b[i])
+    score_list.append(s[i])
+  return torch.stack(bbox_list), torch.stack(label_list), torch.stack(score_list)
