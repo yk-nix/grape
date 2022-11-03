@@ -27,12 +27,12 @@ class PlotLossCallback(Callback):
 
 #----------------------------------------------------------------------------
 # override Recorder
-def _save_recorder(file, recorder: Recorder):
+def _save_recorder(file, recorder: Recorder, iters=None, values=None):
   _states_dict = {
     'lrs': recorder.lrs,
     'losses': recorder.losses,
-    'iters': recorder.iters,
-    'values': recorder.values,
+    'iters':  recorder.iters if iters is None else iters,
+    'values': recorder.values if values is None else values,
     'metrics': recorder.metrics,
     'train_metrics': recorder.train_metrics,
     'valid_metrics': recorder.valid_metrics,
@@ -65,9 +65,9 @@ def _restore_recorder(file, recorder: Recorder, start_epoch):
   recorder.metric_names = _state_dict['metric_names']
   
 @patch
-def __init__(self:Recorder, add_time=True, train_metrics=False, valid_metrics=True, beta=0.98, auto_save=True, auto_save_error=False):
-  store_attr('add_time,train_metrics,valid_metrics,auto_save,auto_save_error')
-  self.loss,self.smooth_loss = AvgLoss(),AvgSmoothLoss(beta=beta)
+def __init__(self:Recorder, add_time=True, train_metrics=False, valid_metrics=True, beta=0.98, auto_save=True, auto_save_error=False, auto_save_loop=500):
+  store_attr('add_time,train_metrics,valid_metrics,auto_save,auto_save_error,auto_save_loop')
+  self.loss,self.smooth_loss = AvgLoss(), AvgSmoothLoss(beta=beta)
   
 @patch
 def before_fit(self:Recorder):
@@ -116,6 +116,17 @@ def after_batch(self:Recorder):
     self.lrs.append(self.opt.hypers[-1]['lr'])
     self.losses.append(self.smooth_loss.value)
     self.learn.smooth_loss = self.smooth_loss.value
+    if self.training and self.auto_save and (self.iter+1) % self.auto_save_loop == 0:
+      suffix = f'{self.learn.epoch+1:03d}'
+      self.learn.save(suffix)
+      if len(self.iters) < self.learn.epoch + 1:
+        iters = self.iters.copy()
+        iters.append(getattr(self, 'last_iter_count', 0) + self.smooth_loss.count)
+        values = self.values.copy()
+        values.append([self.smooth_loss.value.item(), -1.])
+        self.learn.recorder.save(suffix, iters=iters, values=values)
+      else:
+        self.learn.recorder.save(suffix)
   self.batch_canceled = False  # make sure the next batch should not be skipped
   
 @patch
@@ -146,9 +157,9 @@ def load_error(self:Recorder, model_file_name=None, input_file_name=None, sub_di
     if load_input: self.learn.load_input(file_name=input_file_name, sub_dir=sub_dir, ext=ext)
 
 @patch
-def save(self:Recorder, file_name, metric_dir='metrics', ext='.meta'):
+def save(self:Recorder, file_name, metric_dir='metrics', ext='.meta', iters=None, values=None):
   file = self._get_file_path(file_name, sub_dir=metric_dir, ext=ext)
-  _save_recorder(file, self)
+  _save_recorder(file, self, iters=iters, values=values)
   
 @patch
 def load(self:Recorder, file_name, metric_dir='metrics', ext='.meta', start_epoch=None):
@@ -166,10 +177,10 @@ def after_epoch(self: Recorder):
   if self.smooth_loss.count > 0:
     self.values.append(self.learn.final_record)
     self.iters.append(getattr(self, 'last_iter_count', 0) + self.smooth_loss.count)
-  if self.auto_save:
-    suffix = f'{self.learn.epoch+1:03d}'
-    self.learn.save(suffix)
-    self.learn.recorder.save(suffix)
+    if self.auto_save:
+      suffix = f'{self.learn.epoch+1:03d}'
+      self.learn.save(suffix)
+      self.learn.recorder.save(suffix)
   
 @patch
 def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=False):
@@ -178,7 +189,7 @@ def plot_loss(self:Recorder, skip_start=5, with_valid=True, with_lr=False):
   if with_valid:
     idx = (np.array(self.iters)<skip_start).sum()
     valid_col = self.metric_names.index('valid_loss') - 1
-    ax1.plot(self.iters[idx:], L(self.values[idx:]).itemgot(valid_col), label='valid')
+    #ax1.plot(self.iters[idx:], L(self.values[idx:]).itemgot(valid_col), label='valid')
     ax1.scatter(self.iters[idx:], L(self.values[idx:]).itemgot(valid_col), c='red')
     ax1.legend(loc="best")
     ax1.set_ylabel('loss-value')

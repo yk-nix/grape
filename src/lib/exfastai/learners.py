@@ -13,7 +13,7 @@ def fit(self:Learner, n_epoch, lr=None, wd=None, cbs=None, reset_opt=False, star
   if start_epoch != 0:
     self.load(f'{start_epoch:03d}', device=device, **kwargs)
     recorder = getattr(self, 'recorder', None)
-    if recorder:
+    if recorder is not None:
       recorder.load(f'{start_epoch:03d}')
     cbs = L(cbs) + SkipToEpoch(start_epoch)
   with self.added_cbs(cbs):
