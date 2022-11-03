@@ -56,8 +56,7 @@ def get_voc_items(source):
 
 @delegates(FilteredBase.dataloaders)
 def _dls_voc(items, valid_pct, seed, bs, num_workers, image_size, **kwargs):
-  splits = ([90], [0])
-  #splits = RandomSplitter(valid_pct=valid_pct, seed=seed)(items)
+  splits = RandomSplitter(valid_pct=valid_pct, seed=seed)(items)
   datasets = Datasets(items=items,  splits=splits, n_inp=1,
                       tfms=[lambda x: PILImage.create(x['image_file']),
                             lambda x: TensorBBox.create(x['bboxes']),
