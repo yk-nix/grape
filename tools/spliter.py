@@ -5,7 +5,7 @@ import os.path as path
 import argparse
 
 def split(train_pct:float, valid_pct:float, inp_dir, out_dir, seed=None):
-  names = ['train.txt', 'valid.txt', 'test.txt']
+  names = ['train.txt', 'val.txt', 'test.txt']
   items = os.listdir(inp_dir)
   size = len(items)
   if seed is None:
