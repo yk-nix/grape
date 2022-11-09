@@ -15,7 +15,7 @@ def dls_test(dls):
     print(i)
 
 def voc_train():
-  dls = dls_voc()  
+  dls = dls_voc(list_dir=os.path.join('ImageSets', 'Layout'))  
   model = SSD(num_classes=len(dls.vocab), pretrained=False)
   loss_func = SSDLossFlat(ssd=model)
   opt_func = partial(SGD, mom=0.9)

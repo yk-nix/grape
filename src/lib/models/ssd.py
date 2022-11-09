@@ -168,6 +168,7 @@ class SSD(Module):
       return: (conf,          shape: n x num_classes 
                 loc)           shape: n x 4
     '''
+    self.x = x
     x, x0 = self.backbone(x)
     out_0 = self.pred0(x0)
     x = self.layer0(x)
@@ -262,7 +263,7 @@ class SSDLoss(Module):
     n, num_classes  = conf.shape
     positive = (labels > 0)
     num_positive = positive.sum()
-    loss = torch.gather(conf, dim=1, index=labels.long().unsqueeze(1)).flatten() - torch.logsumexp(conf, dim=1)
+    loss = torch.logsumexp(conf, dim=1) - torch.gather(conf, dim=1, index=labels.long().unsqueeze(1)).flatten()
     loss[positive] = 0
     loss = loss.flatten()
     _, loss_idx = loss.sort(descending=True)
