@@ -29,5 +29,7 @@ class SSDLossFlat(BaseLoss):
     return scores, bboxes
   
   def decodes(self, preds):
-    bboxes, labels, scores = post_predict(self, *preds, self.top_n, self.score_threshold)
+    _scores, _bboxes = preds
+    #bboxes, labels, scores = post_predict(self, _scores[:,:,1:], _bboxes, self.top_n, self.score_threshold)
+    bboxes, labels, scores = post_predict(self, _scores, _bboxes, self.top_n, self.score_threshold)
     return TensorBBox(bboxes), TensorMultiCategory(labels)

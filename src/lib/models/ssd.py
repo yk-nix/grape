@@ -191,7 +191,7 @@ class SSDLoss(Module):
   '''
   def __init__(self,
                ssd:SSD,
-               negative_sample_rate:int = 1.0,      # ratio = negative / positive
+               negative_sample_rate:int = 0.5,      # ratio = negative / positive
                encode_variance:List = [1.0, 1.0],
                match_iou_threshold:float = 0.5) -> None:
     super(SSDLoss, self).__init__()

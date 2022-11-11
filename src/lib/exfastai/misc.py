@@ -3,7 +3,7 @@ from fastai.vision.all import *
 from xml.dom.minidom import parse
 from torchvision.ops import batched_nms as nms
 
-__all__ = ['get_annotations_voc', 'post_predict']
+__all__ = ['get_annotations_voc', 'post_predict', 'save_as_darknet']
 
 def get_annotations_voc(path: Any):
   xmls = get_files(path, extensions='.xml', folders=['annotations', 'Annotations'])
@@ -37,9 +37,20 @@ def get_voc(source):
   return [list(o) for o in zip(images, lbls, bboxes)]
 
 #---------------------------------------------------------
+## save weight int the format of darknet
+def save_as_darknet(weight_file, model, major, minor, revision, iters):
+  f = getattr(model, 'to_darknet', None)
+  if f is None:
+    print(f'{model.name} has not implemented to_darknet.')
+    return
+  f(weight_file, major, minor, revision, iters)
+
+#---------------------------------------------------------
 ## select atmost top_n objects whit score > score_threshold
 def post_predict(self, _scores, _bboxes, top_n, score_threshold):
-  ss, idx = _scores.max(dim=-1)[0].sort(descending=True)
+  ss, idx = _scores.max(dim=-1)
+  ss[idx == 0] = 0
+  ss, idx = ss.sort(descending=True)
   top_k = (ss > score_threshold).sum(dim=-1).max().item()
   if top_k < top_n:
     top_n = top_k

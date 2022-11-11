@@ -66,7 +66,7 @@ def load(self:Learner, file_name, sub_dir=None, ext='.pth', with_opt=True, devic
     if device is None and hasattr(self.dls, 'device'): device = self.dls.device
     if self.opt is None and with_opt: self.create_opt()
     file = self._get_file_path(file_name, sub_dir, ext)
-    load_model(file, self.model, self.opt, device=device, **kwargs)
+    load_model(file, self.model, self.opt, device=device, with_opt=with_opt, **kwargs)
     nested_attr(self, "accelerator.wait_for_everyone", noop)()
     return self
   

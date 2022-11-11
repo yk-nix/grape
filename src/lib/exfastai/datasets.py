@@ -22,9 +22,12 @@ class VOCDatasets(Datasets):
     source = Path(source)
     items = []
     if os.path.exists(source):
-      xmls = get_files(source, extensions='.xml', folders=['annotations', 'Annotations'])
-      for xml in xmls:
-        items.append(cls.get_item(xml))
+      if os.path.isdir(source):
+        xmls = get_files(source, extensions='.xml', folders=['annotations', 'Annotations'])
+        for xml in xmls:
+          items.append(cls.get_item(xml)) 
+      else:
+        items, _ =  cls.get_items_from_file (source)   
     return items
   
   @classmethod
@@ -44,7 +47,18 @@ class VOCDatasets(Datasets):
       bboxes.append([float(xmin), float(ymin), float(xmax), float(ymax)])
     return {'image_file': image_file,
             'bboxes': bboxes,
-            'labels': lbls}  
+            'labels': lbls}
+    
+  @classmethod
+  def get_items_from_file(cls, source):
+    source, items, lines, count = Path(source), [], [], 0
+    with open(source, 'r') as f:
+      for line in f.readlines():
+        line = line.strip()
+        if line:
+          items = items + [cls.get_item(os.path.join(source.parent.parent.parent, 'Annotations', line + ".xml"))]
+          count += 1
+    return items, count
   
   def __init__(self, source='', list_dir=None, valid_pct=0.2, seed=20221103, **kwargs):
     self._kwargs = kwargs       
@@ -55,10 +69,10 @@ class VOCDatasets(Datasets):
             [lambda x: x['labels'], MultiCategorize(add_na=True, vocab=self._vocab)]]
     n_inp = self._kwargs.pop('n_inp', 1)
     tfms = self._kwargs.pop('tfms', tfms)
-    super().__init__(items=items, tfms=tfms, n_inp=n_inp, splits=splits, **self._kwargs)  
+    super().__init__(items=items, tfms=tfms, n_inp=n_inp, splits=splits, **self._kwargs)
   
   def __get_items(self, list_dir):
-    items, splits = [], []
+    items, splits, start = [], [], 0
     self.train_file = os.path.join(self.source, list_dir, self.train_file)
     self.valid_file = os.path.join(self.source, list_dir, self.valid_file)
     self.test_file = os.path.join(self.source, list_dir, self.test_file)
@@ -70,7 +84,7 @@ class VOCDatasets(Datasets):
         for line in lines:
           line = line.strip()
           if len(line) > 0:
-            items = items + self.get_item(os.path.join(self.source, 'Annotations',  + ".xml"))
+            items = items + [self.get_item(os.path.join(self.source, 'Annotations', line + ".xml"))]
             count += 1
         splits.append(range(start, start + count))
         start += count

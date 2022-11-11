@@ -1,6 +1,7 @@
 from torch.nn import Module
 from torch import Tensor
 import torch.nn as nn
+import sys
 
 __all__ = ['LeNet']
 
@@ -35,3 +36,23 @@ class LeNet(Module):
         x = self.relu(self.fc1(x))
         x = self.relu(self.fc2(x))
         return self.relu(self.fc3(x))
+    
+    def to_darknet(self, weight_file, major, minor, revision, iters):
+        with open(weight_file, 'wb') as f:
+            f.write(major.to_bytes(4, sys.byteorder))
+            f.write(minor.to_bytes(4, sys.byteorder))
+            f.write(revision.to_bytes(4, sys.byteorder))
+            if (major*10 + minor) >= 2 and (major < 1000) and (minor < 1000):
+                f.write(iters.to_bytes(8, sys.byteorder))
+            else:
+                f.write(iters.to_bytes(4, sys.byteorder))
+            f.write(self.conv1.bias.detach().numpy().tobytes())
+            f.write(self.conv1.weight.detach().numpy().tobytes())
+            f.write(self.conv2.bias.detach().numpy().tobytes())
+            f.write(self.conv2.weight.detach().numpy().tobytes())
+            f.write(self.fc1.bias.detach().numpy().tobytes())
+            f.write(self.fc1.weight.detach().numpy().tobytes())
+            f.write(self.fc2.bias.detach().numpy().tobytes())
+            f.write(self.fc2.weight.detach().numpy().tobytes())
+            f.write(self.fc3.bias.detach().numpy().tobytes())
+            f.write(self.fc3.weight.detach().numpy().tobytes())
