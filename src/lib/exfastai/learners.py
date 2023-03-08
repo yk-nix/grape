@@ -10,8 +10,8 @@ __all__=['create_learner']
 @patch
 @delegates(load_model)
 def fit(self:Learner, n_epoch, lr=None, wd=None, cbs=None, reset_opt=False, start_epoch=0, device=None, **kwargs):
+  self.load(f'{start_epoch:03d}', device=device, **kwargs)
   if start_epoch != 0:
-    self.load(f'{start_epoch:03d}', device=device, **kwargs)
     recorder = getattr(self, 'recorder', None)
     if recorder is not None:
       recorder.load(f'{start_epoch:03d}')

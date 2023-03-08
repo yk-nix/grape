@@ -120,6 +120,7 @@ class SSD(Module):
                feature_scales:List = [(8,8), (16,16), (32,32), (64,64), (100,100), (304,304)],
                **kwargs):
     super(SSD, self).__init__()
+    self.name = f'ssd-{backbone}'
     if num_classes <= 0:
         raise ValueError('invlaid num_classes: {}'.format(num_classes))
     num_dim = num_classes + 4
@@ -135,7 +136,6 @@ class SSD(Module):
     self.anchor_size_limits = anchor_size_limits
     self.priors = generate_anchor_boxes(anchor_ratios, feature_scales, feature_shapes, anchor_size_limits, image_size)
     self.backbone = _backbones[backbone](**kwargs)
-    self.name = f'ssd-{backbone}'
     self.pred0  = Conv2d(in_channels=512, out_channels = anchors[0] * num_dim, kernel_size=3, stride=1, padding=1)
     self.layer0 = _make_layer0(in_channels=512, out_channels=1024, batch_normal=batch_normal)
     self.pred1  = Conv2d(in_channels=1024, out_channels = anchors[1] * num_dim, kernel_size=3, stride=1, padding=1)

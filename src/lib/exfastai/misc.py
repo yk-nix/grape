@@ -47,9 +47,10 @@ def save_as_darknet(weight_file, model, major, minor, revision, iters):
 
 #---------------------------------------------------------
 ## select atmost top_n objects whit score > score_threshold
-def post_predict(self, _scores, _bboxes, top_n, score_threshold):
+def post_predict(_scores, _bboxes, top_n, nms_iou_threshold, score_threshold, exclude_bg=True):
   ss, idx = _scores.max(dim=-1)
-  ss[idx == 0] = 0
+  if exclude_bg:
+    ss[idx == 0] = 0
   ss, idx = ss.sort(descending=True)
   top_k = (ss > score_threshold).sum(dim=-1).max().item()
   if top_k < top_n:
@@ -57,10 +58,10 @@ def post_predict(self, _scores, _bboxes, top_n, score_threshold):
   idx = idx.unsqueeze(dim=-1)
   scores = _scores.gather(1, idx.broadcast_to(_scores.shape))[:,:top_n,:]
   bboxes = _bboxes.gather(1, idx.broadcast_to(_bboxes.shape))[:,:top_n,:]   
-  scores, labels = scores.max(dim=self.axis)
+  scores, labels = scores.max(dim=-1)
   label_list, bbox_list, score_list = [], [], []
   for b, s, l in zip(bboxes, scores, labels):
-    i = nms(b, s, l, self.nms_iou_threshold)
+    i = nms(b, s, l, nms_iou_threshold)
     label_list.append(l[i])
     bbox_list.append(b[i])
     score_list.append(s[i])

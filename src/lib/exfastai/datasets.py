@@ -12,7 +12,7 @@ class VOCDatasets(Datasets):
             diningtable dog horse motorbike person pottedplant sheep \
             sofa train tvmonitor'.split()
   train_file, valid_file, test_file = 'train.txt', 'val.txt', 'test.txt'
-    
+  
   @classmethod
   def get_source_path(cls, xml_path):
     return Path(xml_path).parent.parent
@@ -60,13 +60,13 @@ class VOCDatasets(Datasets):
           count += 1
     return items, count
   
-  def __init__(self, source='', list_dir=None, valid_pct=0.2, seed=20221103, **kwargs):
+  def __init__(self, source='', list_dir=None, valid_pct=0.2, seed=20221103, tfms=None, add_na=True, **kwargs):
     self._kwargs = kwargs       
     self.source = Path(source)
     items, splits = self._get_items(list_dir, valid_pct, seed)
     tfms = [lambda x: PILImage.create(x['image_file']),
             lambda x: TensorBBox.create(x['bboxes']),
-            [lambda x: x['labels'], MultiCategorize(add_na=True, vocab=self._vocab)]]
+            [lambda x: x['labels'], MultiCategorize(add_na=add_na, vocab=self._vocab)]] if tfms is None else tfms
     n_inp = self._kwargs.pop('n_inp', 1)
     tfms = self._kwargs.pop('tfms', tfms)
     super().__init__(items=items, tfms=tfms, n_inp=n_inp, splits=splits, **self._kwargs)
@@ -120,9 +120,9 @@ class VOCDatasets(Datasets):
   def dataloaders(self,
                   image_size=304, bs=8, num_workers=0,
                   do_flip=True, flip_vert=False, max_rotate=10, max_lighting=0.2, min_zoom=0.8, max_zoom=1.0, max_warp=0.1, pad_mode=PadMode.Zeros,
-                  **kwargs):
-    after_item = [ToTensor(), PointScaler()]
-    before_batch = ExpandBatch(times=bs)
+                  after_item=None, before_batch=None, after_batch=None, **kwargs):
+    after_item = [ToTensor(), PointScaler()] if after_item is None else after_item
+    before_batch = ExpandBatch(times=bs) if before_batch is None else before_batch
     after_batch = [IntToFloatTensor(), 
                   *aug_transforms(size=image_size,
                                   do_flip=do_flip,
@@ -133,5 +133,5 @@ class VOCDatasets(Datasets):
                                   max_zoom=max_zoom,
                                   max_warp=max_warp,
                                   pad_mode=pad_mode), 
-                  PointScalerReverse(order=90)]
+                  PointScalerReverse(order=90)] if after_batch is None else after_batch
     return super().dataloaders(bs=1, num_workers = num_workers, after_item=after_item, before_batch=before_batch, after_batch=after_batch)
