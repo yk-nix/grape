@@ -55,6 +55,6 @@ def voc_train():
 if __name__ == '__main__':
   sys = platform.system()
   cwd = os.path.abspath('.')
-  if sys == 'Linux' and  cwd != '/data/grapefruits':
+  if sys == 'Linux' and  cwd != '/home/yoka/grape':
     raise ValueError(f'Wrong working directory: {cwd}')
   voc_train()
