@@ -45,45 +45,40 @@ def logger(learner: Learner, freq: int = 200) -> NoReturn:
 
 def weight_saver(learner: Learner) -> NoReturn:
   learner.save()
+  values = learner.eval()
+  confidences, predictions, labels = tuple(zip(*values))
+  confidences = torch.hstack(confidences)
+  predictions = torch.hstack(predictions)
+  labels = torch.hstack(labels)
+  print(f'------- epoch={learner.epoch} accuracy rate: {torch.sum(predictions == labels).item() / len(labels) * 100}% --------')
 
 def main() -> NoReturn:
   data_root = 'F:/data'
   weight_root = 'F:/weight'
-  dataset = datasets.MNIST(root = data_root,
-                           transform = v2.Compose([
-                             v2.PILToTensor(),
-                             v2.ToDtype(torch.float, scale = True)
-                           ]))
-  # dataset = VOCDetection(data_root,
-  #                        image_set = 'trainval', 
-  #                        transforms = voc_detection_transforms_wrapper(v2.Compose([
-  #                          v2.Resize((224, 224)),
-  #                          # v2.RandomHorizontalFlip(0.5),
-  #                          # v2.RandomVerticalFlip(0.5),
-  #                        ])))
-  dataloader = DataLoader(dataset = dataset,
-                          batch_size = 64,
-                          shuffle = True,
-                          # collate_fn = voc_detection_collate_fn
-                          num_workers = 0)
+  transforms = v2.Compose([ v2.PILToTensor(), v2.ToDtype(torch.float, scale = True)])
+  train_dataset = datasets.MNIST(root = data_root, train = True, transform = transforms)
+  eval_dataset = datasets.MNIST(root = data_root, train = False, transform = transforms)
+  train_dataloader = DataLoader(dataset = train_dataset, batch_size = 64, shuffle = True, num_workers = 0)
+  eval_dataloader = DataLoader(dataset = eval_dataset, batch_size = 64, shuffle = True, num_workers = 0)
   model = LeNet(10)
   loss_fn = CrossEntropyLoss()
   optimizer = SGD(model.parameters(), lr = 0.01, momentum = 0.9)
   lr_scheduler = StepLR(optimizer, step_size = 10, gamma = 0.8)
   learner = Learner(root = weight_root,
                     name = model.name + "_" + model.version,
-                    dataloader = dataloader,
+                    train_dataloader = train_dataloader,
+                    eval_dataloader = eval_dataloader,
                     model = model,
                     loss_fn = loss_fn,
+                    eval_fn = LeNet.eval,
                     optimizer = optimizer,
                     lr_scheduler= lr_scheduler,
                     loop_cb = lambda learner: logger(learner = learner),
                     epoch_cb = lambda learner: weight_saver(learner = learner))
-  learner.loop = 49714
-  learner.epoch = 53
-  learner.load('00049714.pth')
+  learner.load('00130382.pth')
   # controller(learner).start()
   learner.train()
   
+
 if __name__ == '__main__':
   main()

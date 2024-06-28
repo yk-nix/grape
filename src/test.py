@@ -5,8 +5,14 @@ import socket
 
 from lib.uitls.file import join_path_file
 
-weight_root = 'F:/weight'
-print(join_path_file(weight_root, 'lenet5', file = ''))
+from torchvision.models.detection import ssd300_vgg16
+
+total = 100
+ok = 80
+print(f'accuracy rate: {ok/total}')
+
+# weight_root = 'F:/weight'
+# print(join_path_file(weight_root, 'lenet5', file = ''))
 
 
 # s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -35,3 +41,11 @@ print(join_path_file(weight_root, 'lenet5', file = ''))
 #   ax.cla()
 #   t += np.pi / 30
 #   y = np.sin(t)
+
+  # dataset = VOCDetection(data_root,
+  #                        image_set = 'trainval', 
+  #                        transforms = voc_detection_transforms_wrapper(v2.Compose([
+  #                          v2.Resize((224, 224)),
+  #                          # v2.RandomHorizontalFlip(0.5),
+  #                          # v2.RandomVerticalFlip(0.5),
+  #                        ])))

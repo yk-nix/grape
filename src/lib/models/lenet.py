@@ -1,6 +1,7 @@
 from torch import Tensor
 from typing import NoReturn, Dict
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -19,8 +20,7 @@ class LeNet(nn.Module):
     self.linear1 = nn.Linear(in_features = 120, out_features = 84)
     self.linear2 = nn.Linear(in_features = 84, out_features = classes)
       
-  def forward(self, 
-              images : Tensor) -> Tensor:
+  def forward(self, images : Tensor) -> Tensor:
     """
     images: b x 1 x 28 x 28
     ouput:  b x classes
@@ -39,4 +39,10 @@ class LeNet(nn.Module):
     x = self.linear1(x.reshape(-1, 120))
     # b x 84 -> b x classes
     return self.linear2(x)
-    
+  
+  @staticmethod
+  def eval(x: Tensor)-> Tensor:
+    """
+      x (shape: b x classes):     the output of forward
+    """
+    return torch.softmax(x, dim = -1).max(dim = -1)

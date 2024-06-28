@@ -1,4 +1,4 @@
-from typing import NoReturn, Callable, Tuple, Any, Union
+from typing import NoReturn, Callable, Tuple, Any, Union, List
 from torch import Tensor
 from torch.utils.data.dataloader import DataLoader
 from torch.nn import Module
@@ -28,10 +28,12 @@ class Learner() :
   def __init__(self,
                root: Union[str, Path],
                name: str,
-               dataloader: DataLoader,
+               train_dataloader: DataLoader,
+               eval_dataloader: DataLoader,
                model: Module,
-               loss_fn: Callable,
-               optimizer: Optimizer,
+               loss_fn: Callable = None,
+               eval_fn: Callable = None,
+               optimizer: Optimizer = None,
                lr_scheduler: LRScheduler = None,
                loop_cb: Callable = None,
                epoch_cb: Callable = None) :
@@ -39,9 +41,11 @@ class Learner() :
       root = os.path.expanduser(root)
     self.root = root
     self.name = name
-    self.dataloader = dataloader
+    self.train_dataloader = train_dataloader
+    self.eval_dataloader = eval_dataloader
     self.model = model
     self.loss_fn = loss_fn
+    self.eval_fn = eval_fn
     self.optimizer = optimizer
     self.lr_scheduler = lr_scheduler
     self.loop = 0
@@ -109,15 +113,23 @@ class Learner() :
     self.loop = states['loop']
     self.epoch = states['epoch']
 
-  def on_exit(self) -> NoReturn:
-    self.save()
+  def on_exit(self, exit_handler: Callable = None) -> NoReturn:
+    if exit_handler is not None:
+      exit_handler(self)
 
   def train(self) -> NoReturn:
+    self.model.train()
+    if self.train_dataloader is None:
+      raise ValueError('you must specify train_dataloader in train mode, and it is None now')
+    if self.loss_fn is None:
+      raise ValueError('you must specify loss_fn in train mode, and it is None now')
+    if self.optimizer is None:
+      raise ValueError('you must specify optimizer in train mode, and it is None now')
     while True:
       now = datetime.now()
-      for x, y in self.dataloader:
+      for x, y in self.train_dataloader:
         if self.interrupted:
-          self.on_exit()
+          self.on_exit(self.save)
           return
         self.loop += 1
         log = {'loop': self.loop, 
@@ -141,6 +153,17 @@ class Learner() :
       if self.epoch_cb is not None:
         self.epoch_cb(self)
 
+  def eval(self) -> List:
+    if self.eval_dataloader is None:
+      raise ValueError('you must specify eval_dataloader in eval mode, and it is None now')
+    if self.eval_fn is None:
+      raise ValueError('you must specify eval_fn in eval mode, and it is None now')
+    values = []
+    with torch.no_grad():
+      self.model.train(False)
+      for x, y in self.eval_dataloader:
+        values.append((*self.eval_fn(self.model(x)), y))
+    return values
 
 
   
