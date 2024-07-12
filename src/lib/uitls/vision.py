@@ -3,6 +3,7 @@ from math import ceil, sqrt
 from torch import Tensor
 from torchvision.utils import draw_bounding_boxes
 
+import torch
 import matplotlib.pyplot as plt
 import torchvision.transforms.v2.functional as tf
 
@@ -15,6 +16,13 @@ def caculate_grid_size(n: int) -> Tuple[int]:
     w = n
   return (h, w)
 
+def unnormalize(images: Tensor, 
+                image_mean: List[float],
+                image_std: List[float],) -> Tensor:
+  image_mean = torch.tensor(image_mean).view(1, -1, 1, 1)
+  image_std = torch.tensor(image_std).view(1, -1, 1, 1)
+  return images * image_std + image_mean
+
 def show_images(images: Sequence[Tensor], 
                 boxes: Sequence[Tensor] = None, 
                 labels: Sequence[List[str]] = None,
@@ -26,11 +34,13 @@ def show_images(images: Sequence[Tensor],
   rows, colums = caculate_grid_size(N)
   for i in range(0, N, 1):
     boundBoxes = None if boxes is None or len(boxes) == 0 else boxes[i]
-    lableNames = None if labels is None or len(labels) == 0 else labels[i]
+    labelNames = None if labels is None or len(labels) == 0 else labels[i]
     image = images[i]
     # colors = ['red'] * len(boundBoxes)
+    if image.dtype != torch.uint8:
+      image = tf.to_dtype(image, torch.uint8, scale = True)
     if boundBoxes is not None:
-      image = draw_bounding_boxes(image, boundBoxes, lableNames,
+      image = draw_bounding_boxes(image, (boundBoxes - width).clamp_min(0), labelNames,
                                   colors = colors, width = width, font = font, font_size = font_size)
     ax = plt.subplot(rows, colums, i + 1, frameon = False)
     ax.set_axis_off()

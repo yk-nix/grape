@@ -101,7 +101,7 @@ class Learner() :
       filename = self.default_weight_file_name()
     torch.save(state, join_path_file(self.root, self.name, file = filename))
 
-  def load(self, file: Union[str, Path]) -> NoReturn:
+  def load(self, file: Union[str, Path], ignore_optimizer: bool = False, ignore_lr_scheduler: bool = False) -> NoReturn:
     file = Path(file)
     if not os.path.isabs(file):
       file = Path(self.default_weight_file_directory(), file)
@@ -165,5 +165,9 @@ class Learner() :
         values.append((*self.eval_fn(self.model(x)), y))
     return values
 
+  def predict(self, x) -> Any:
+    if self.eval_fn is None:
+      raise ValueError('you must specify eval_fn in predict mode, and it is None now')
+    return self.eval_fn(self.model)
 
   

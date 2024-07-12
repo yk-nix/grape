@@ -52,7 +52,7 @@ def weight_saver(learner: Learner) -> NoReturn:
   labels = torch.hstack(labels)
   print(f'------- epoch={learner.epoch} accuracy rate: {torch.sum(predictions == labels).item() / len(labels) * 100}% --------')
 
-def main() -> NoReturn:
+def lenet_test() -> NoReturn:
   data_root = 'F:/data'
   weight_root = 'F:/weight'
   transforms = v2.Compose([ v2.PILToTensor(), v2.ToDtype(torch.float, scale = True)])
@@ -75,10 +75,17 @@ def main() -> NoReturn:
                     lr_scheduler= lr_scheduler,
                     loop_cb = lambda learner: logger(learner = learner),
                     epoch_cb = lambda learner: weight_saver(learner = learner))
-  learner.load('00130382.pth')
+  learner.load('00153832.pth')
   # controller(learner).start()
-  learner.train()
-  
+  # learner.train()
+  pass
+
+
+
+
+def main() -> NoReturn:
+  pass
+
 
 if __name__ == '__main__':
   main()
