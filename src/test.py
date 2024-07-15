@@ -4,10 +4,12 @@ import time
 import socket
 import torch
 import PIL
+import re
 
 from lib.uitls.file import join_path_file
 from lib.datasets import voc
 from lib.uitls.vision import show_images, unnormalize
+from lib.datasets.pede import PedDetection
 
 
 from typing import Any
@@ -55,7 +57,28 @@ def tf_print(input: Any) -> Any:
   print(input)
   return input
 
-# data_root = 'F:/data'
+root = 'F:/data'
+
+# dataset = datasets.VOCDetection(root, image_set='train', transform=v2.functional.pil_to_tensor)
+# dataset.images = [re.compile(' .*\.').sub('.', e) for e in dataset.images]
+# dataset.targets = [re.compile(' .*\.').sub('.', e) for e in dataset.targets]
+# for img, target in dataset:
+#   a = target['annotation']
+#   boxes = torch.tensor([[int(v) for v in o['bndbox'].values()] for o in a['object']])
+#   labels = [o['name'] for o in a['object']]
+#   print(a['filename'])
+#   show_images([img], [boxes], [labels])
+
+# dataset = datasets.ImageFolder(root + '/' + 'test')
+# print(dataset[0])
+
+# dataset = PedDetection(root, transform=v2.functional.pil_to_tensor)
+# for img, target in dataset:
+#   boxes = torch.tensor(target['bndboxes'])
+#   show_images([img], [boxes])
+
+
+
 # transforms = voc.voc_detection_transforms_wrapper(v2.Compose([
 #   v2.PILToTensor(),
 #   v2.ToDtype(torch.float, scale=True)
@@ -63,7 +86,7 @@ def tf_print(input: Any) -> Any:
 #   # # v2.Lambda(tf_print),
 #   # v2.RandomRotation((30, 30))
 # ]))
-# dataset = datasets.VOCDetection(data_root, image_set = 'trainval', transforms = transforms)
+# dataset = datasets.VOCDetection(root, image_set = 'trainval', transforms = transforms)
 # dataloader = DataLoader(dataset, 8, collate_fn=lambda x: x)
 # size = (224, 224)
 # image_mean = [0.48235, 0.45882, 0.40784]
@@ -73,7 +96,8 @@ def tf_print(input: Any) -> Any:
 #   x, y = zip(*e)
 #   x, y = transform(x, y)
 #   print(x.image_sizes)
-#   show_images(unnormalize(x.tensors, image_mean, image_std).unbind(0))
+#   boxes = [e['boxes'] for e in y]
+#   show_images(unnormalize(x.tensors, image_mean, image_std).unbind(0), boxes)
 #   break
 
 
@@ -82,9 +106,6 @@ ssd = ssd300_vgg16(weights = weights,
                    score_thresh = 0.4,
                    trainable_backbone_layers = 0,
                    num_classes = 2)
-ssd.name = 'ssd300_vgg16_ped'
-ssd.version = ""
-
 # ssd = ssd300_vgg16()
 print(ssd)
 ssd.eval()

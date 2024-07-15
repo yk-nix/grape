@@ -59,9 +59,9 @@ class Learner() :
     'stop learner'
     self.interrupted = True
 
-  def forward(self, x: Tensor) -> Tensor:
+  def forward(self, x: Tensor, y: Any) -> Tensor:
     'forward + calculate loss'
-    return self.model(x)
+    return self.model(x, y)
 
   def backward(self, loss: Tensor) -> NoReturn:
     '''backward: calculate gradients'''
@@ -138,7 +138,7 @@ class Learner() :
                'loss': None, 
                'dataloader': datetime.now().timestamp() - now.timestamp()}
         self.optimizer.zero_grad()
-        log['forward'], y_hat = self.measure_time(self.forward, x, returnable = True)
+        log['forward'], y_hat = self.measure_time(self.forward, x, y, returnable = True)
         loss = self.loss_fn(y_hat, y)
         log['loss'] = loss.item()
         log['backward'] = self.measure_time(self.backward, loss)
@@ -166,8 +166,10 @@ class Learner() :
     return values
 
   def predict(self, x) -> Any:
-    if self.eval_fn is None:
-      raise ValueError('you must specify eval_fn in predict mode, and it is None now')
-    return self.eval_fn(self.model)
+    with torch.no_grad():
+      self.model.train(False)
+      if self.eval_fn is None:
+        raise ValueError('you must specify eval_fn in predict mode, and it is None now')
+      return self.eval_fn(self.model(x))
 
   
