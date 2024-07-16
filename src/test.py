@@ -146,6 +146,6 @@ def load_dicts(file: Union[str, Path]) -> List[Dict]:
     
 
 if __name__ == '__main__':
-  losses = [e['loss'] for e in load_dicts('tmp/log.txt')]
+  losses = [e['loss'] for e in load_dicts('tmp/log.txt') if e['loss'] < 0.01]
   plt.plot(losses)
   plt.show()

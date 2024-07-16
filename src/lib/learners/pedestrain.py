@@ -1,4 +1,4 @@
-from typing import Union, NoReturn, Callable
+from typing import Union, NoReturn, Callable, Any
 from pathlib import Path
 from torch.utils.data.dataloader import DataLoader
 from torchvision.models.detection.ssd import ssd300_vgg16, SSDHead, SSD300_VGG16_Weights
@@ -19,10 +19,13 @@ import torchvision.transforms.v2 as v2
 class PedestrainDetector(Configurable):
   def __init__(self, config_file: Union[str, Path] = None):
     super().__init__(config_file)
-    transform = v2.Compose([v2.PILToTensor(), v2.ToDtype(torch.float, scale = True)])
+    transforms = v2.Compose([v2.PILToTensor(),
+                             v2.RandomHorizontalFlip(),
+                             v2.RandomVerticalFlip(),
+                             v2.ToDtype(torch.float, scale = True)])
     dataset = PedDetection(self.config.get('data_root'),
                            image_set='train',
-                           transform = transform)
+                           transforms = transforms)
     dataloader = DataLoader(dataset, 
                             batch_size = int(self.config.get('batch_size', 4)),
                             shuffle = self.config.get('shuffle', True),
@@ -55,10 +58,10 @@ class PedestrainDetector(Configurable):
   
   def train(self, 
             weight_file: Union[str, Path]= None,
-            load_cb: Callable = None
-            ) -> NoReturn:
+            load_cb: Callable = None,
+            **kwargs: Any ) -> NoReturn:
     if weight_file is not None:
-      self.learner.load(weight_file)
+      self.learner.load(weight_file, **kwargs)
       if load_cb is not None:
         load_cb(self)
     self.learner.train()

@@ -6,6 +6,7 @@ from typing import Union, Optional, Callable, List, Tuple, Any, Dict
 from pathlib import Path
 from torchvision.datasets.vision import VisionDataset
 from torchvision.datasets.utils import verify_str_arg
+from torchvision.tv_tensors import BoundingBoxes, BoundingBoxFormat
 
 class PedDetection(VisionDataset):
   def __init__(self, 
@@ -82,6 +83,7 @@ class PedDetection(VisionDataset):
         elif key.startswith('Bounding box for object'):
           ped_dict['boxes'].append([int(e.strip()) for e in value.translate(str.maketrans('()-','  ,')).split(',')])
           ped_dict['labels'].append(1)
-      ped_dict['boxes'] = torch.tensor(ped_dict['boxes'])
+      # ped_dict['boxes'] = torch.tensor(ped_dict['boxes'])
+      ped_dict['boxes'] = BoundingBoxes(ped_dict['boxes'], format = BoundingBoxFormat.XYXY, canvas_size = (ped_dict['shape'][1], ped_dict['shape'][0]))
       ped_dict['labels'] = torch.tensor(ped_dict['labels'])
     return ped_dict
