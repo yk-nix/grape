@@ -24,7 +24,7 @@ class PedDetection(VisionDataset):
     ped_root = os.path.join(self.root, 'PennFudanPed')
 
     if not os.path.isdir(ped_root):
-      raise RuntimeError('Dataset not found or corrupted.')
+      raise RuntimeError(f'Dataset not found or corrupted: {ped_root}')
 
     splits_dir = os.path.join(ped_root, 'ImageSets')
     split_f = os.path.join(splits_dir, image_set.rstrip('\n') + '.txt')

@@ -5,6 +5,8 @@ import socket
 import torch
 import PIL
 import re
+import configparser
+
 
 from lib.uitls.file import join_path_file
 from lib.datasets import voc
@@ -21,6 +23,7 @@ from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torch.utils.data.dataloader import DataLoader
 from torchvision.models import vgg16
 from torchvision.models.vgg import VGG16_Weights
+from threading import Thread
 
 # weight_root = 'F:/weight'
 # print(join_path_file(weight_root, 'lenet5', file = ''))
@@ -101,25 +104,25 @@ root = 'F:/data'
 #   break
 
 
-weights = SSD300_VGG16_Weights.DEFAULT
-ssd = ssd300_vgg16(weights = weights, 
-                   score_thresh = 0.4,
-                   trainable_backbone_layers = 0,
-                   num_classes = 2)
-# ssd = ssd300_vgg16()
-print(ssd)
-ssd.eval()
-image = PIL.Image.open('F:/data/test/FudanPed00074.png')
-tf = v2.Compose([v2.PILToTensor(), v2.ToDtype(torch.float, scale=True)])
-x = tf(image)
-with torch.no_grad():
-  y = ssd([x])
-  scores = y[0]['scores']
-  # boxes = y[0]['boxes'].to(torch.int)[scores > threshold]
-  # labels = [weights.meta['categories'][i] for i in y[0]['labels'][scores > threshold].flatten().tolist()]
-  boxes = y[0]['boxes'].to(torch.int)
-  labels = [weights.meta['categories'][i] for i in y[0]['labels'].flatten().tolist()]
-  show_images([x], [boxes], [labels], width = 2)
+# weights = SSD300_VGG16_Weights.DEFAULT
+# ssd = ssd300_vgg16(weights = weights, 
+#                    score_thresh = 0.4,
+#                    trainable_backbone_layers = 0,
+#                    num_classes = 2)
+# # ssd = ssd300_vgg16()
+# print(ssd)
+# ssd.eval()
+# image = PIL.Image.open('F:/data/test/FudanPed00074.png')
+# tf = v2.Compose([v2.PILToTensor(), v2.ToDtype(torch.float, scale=True)])
+# x = tf(image)
+# with torch.no_grad():
+#   y = ssd([x])
+#   scores = y[0]['scores']
+#   # boxes = y[0]['boxes'].to(torch.int)[scores > threshold]
+#   # labels = [weights.meta['categories'][i] for i in y[0]['labels'][scores > threshold].flatten().tolist()]
+#   boxes = y[0]['boxes'].to(torch.int)
+#   labels = [weights.meta['categories'][i] for i in y[0]['labels'].flatten().tolist()]
+#   show_images([x], [boxes], [labels], width = 2)
 
 
 # image, annotation = dataset[4]
@@ -129,3 +132,10 @@ with torch.no_grad():
 # labels = [o['name'] for o in annotation['annotation']['object']]
 # show_images([image], [boxes], [labels])
 
+
+    
+
+if __name__ == '__main__':
+  parser = configparser.ConfigParser()
+  parser.read('cfg/grape.cfg')
+  print(parser.get('default', 'data_root').strip(' \t\r\n"\''))

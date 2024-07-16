@@ -1,5 +1,5 @@
 from torch import Tensor
-from typing import NoReturn, Dict
+from typing import NoReturn, Dict, Any
 
 import torch
 import torch.nn as nn
@@ -20,13 +20,13 @@ class LeNet(nn.Module):
     self.linear1 = nn.Linear(in_features = 120, out_features = 84)
     self.linear2 = nn.Linear(in_features = 84, out_features = classes)
       
-  def forward(self, images : Tensor) -> Tensor:
+  def forward(self, x : Tensor, y: Any = None) -> Tensor:
     """
     images: b x 1 x 28 x 28
     ouput:  b x classes
     """
     # b x 1 x 28 x 28 --> b x 6 x 28 x 28
-    x = F.sigmoid(self.conv1(images))
+    x = F.sigmoid(self.conv1(x))
     # b x 6 x 28 x 28 --> b x 6 x 14 x 14
     x = F.avg_pool2d(x, 2, 2)
     # b x 6 x 14 x 14 -> b x 16 x 10 x 10

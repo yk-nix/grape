@@ -6,19 +6,25 @@ from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from datetime import datetime
 from pathlib import Path
+from threading import Thread
 
 from lib.uitls.file import join_path_file
 
 import os
 import torch
+import inspect
+import socket
 
-class Learner() : 
+__all__ = ['Learner', 'InteractiveLearner', 'print_logger', 'weight_saver']
+
+class Learner: 
   '''
     Args: \n
       root (str or ``pathlib.Path``): Root directory of leaner where the weights will be saved
       name (str): the name of this learner, which should be unique
-      dataloader (DataLodaer): dataloader
       model (Module): model
+      train_dataloader (DataLodaer): dataloader for training
+      eval_dataloader (Dataloader): dataloader for testing
       loss_fn (Callable): function to calculate loss
       optimizer (Optimizer): optimizer
       lr_scheduler (LRScheduler): scheduler to update learning rate
@@ -28,9 +34,9 @@ class Learner() :
   def __init__(self,
                root: Union[str, Path],
                name: str,
-               train_dataloader: DataLoader,
-               eval_dataloader: DataLoader,
                model: Module,
+               train_dataloader: DataLoader = None,
+               eval_dataloader: DataLoader = None,
                loss_fn: Callable = None,
                eval_fn: Callable = None,
                optimizer: Optimizer = None,
@@ -107,15 +113,19 @@ class Learner() :
       file = Path(self.default_weight_file_directory(), file)
     states = torch.load(file)
     self.model.load_state_dict(states['model'])
-    self.optimizer.load_state_dict(states['optimizer'])
-    if self.lr_scheduler is not None:
+    if not ignore_optimizer and self.optimizer is not None:
+      self.optimizer.load_state_dict(states['optimizer'])
+    if not ignore_lr_scheduler  and self.lr_scheduler is not None:
       self.lr_scheduler.load_state_dict(states['lr_scheduler'])
     self.loop = states['loop']
     self.epoch = states['epoch']
 
   def on_exit(self, exit_handler: Callable = None) -> NoReturn:
     if exit_handler is not None:
-      exit_handler(self)
+      if inspect.ismethod(exit_handler) and exit_handler.__self__ == self:
+        exit_handler()
+      else:
+        exit_handler(self)
 
   def train(self) -> NoReturn:
     self.model.train()
@@ -172,4 +182,57 @@ class Learner() :
         raise ValueError('you must specify eval_fn in predict mode, and it is None now')
       return self.eval_fn(self.model(x))
 
-  
+
+class InteractiveLearner(Learner):
+  _PORT_DEFAULT: int = 12345
+  def __init__(self, port: int = None, **kwargs: Any):
+    super().__init__(**kwargs)
+    if port is None:
+      self.port = self._PORT_DEFAULT
+    else:
+      self.port = port      
+
+  def train(self) -> NoReturn:
+    controller = create_controller(self)
+    controller.setDaemon(True)
+    controller.start()
+    super().train()
+
+
+def create_controller(learner: InteractiveLearner) -> Thread:
+  def closure():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('0.0.0.0', learner.port))
+    print(f'listen on port (udp): {learner.port}')
+    while True:
+      data, _ = sock.recvfrom(2048)
+      cmd = data.decode().strip(' \t\r\n').lower()
+      if cmd == 'stop' or cmd == 'exit':
+        if learner is not None:
+          learner.stop()
+        break
+    sock.close()
+  return Thread(target = closure)
+
+def print_logger(learner: Learner, freq: int = 200) -> NoReturn:
+  if learner.loop % freq == 0:
+    info = {'dataloader': 0, 'forward': 0, 'backward': 0, 'update': 0, 'loss': 0}
+    for log in learner.logs:
+      info['dataloader'] += log['dataloader']
+      info['forward'] += log['forward']
+      info['backward'] += log['backward']
+      info['update'] += log['update']
+      info['loss'] += log['loss']
+    learner.logs.clear()
+    info['loss'] /= freq
+    print(info)
+
+def weight_saver(learner: Learner, freq: int = 1) -> NoReturn:
+  learner.save()
+  if learner.eval_dataloader is not None and learner.eval_fn is not None:
+    values = learner.eval()
+    confidences, predictions, labels = tuple(zip(*values))
+    confidences = torch.hstack(confidences)
+    predictions = torch.hstack(predictions)
+    labels = torch.hstack(labels)
+    print(f'------- epoch={learner.epoch} accuracy rate: {torch.sum(predictions == labels).item() / len(labels) * 100}% --------')
