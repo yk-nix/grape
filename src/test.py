@@ -14,7 +14,7 @@ from lib.uitls.vision import show_images, unnormalize
 from lib.datasets.pede import PedDetection
 
 
-from typing import Any
+from typing import Any, Union, Dict, NoReturn, List
 from torchvision import datasets
 from torchvision.transforms import v2
 from torchvision.tv_tensors import BoundingBoxes
@@ -24,6 +24,7 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision.models import vgg16
 from torchvision.models.vgg import VGG16_Weights
 from threading import Thread
+from pathlib import Path
 
 # weight_root = 'F:/weight'
 # print(join_path_file(weight_root, 'lenet5', file = ''))
@@ -133,9 +134,18 @@ root = 'F:/data'
 # show_images([image], [boxes], [labels])
 
 
+def load_dicts(file: Union[str, Path]) -> List[Dict]:
+  info = []
+  with open(file, 'r') as f:
+    for line in f.readlines():
+      line = line.strip()
+      if len(line) == 0:
+        continue
+      info.append(eval(line))
+  return info
     
 
 if __name__ == '__main__':
-  parser = configparser.ConfigParser()
-  parser.read('cfg/grape.cfg')
-  print(parser.get('default', 'data_root').strip(' \t\r\n"\''))
+  losses = [e['loss'] for e in load_dicts('tmp/log.txt')]
+  plt.plot(losses)
+  plt.show()

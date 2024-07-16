@@ -203,7 +203,7 @@ def create_controller(learner: InteractiveLearner) -> Thread:
   def closure():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('0.0.0.0', learner.port))
-    print(f'listen on port (udp): {learner.port}')
+    # print(f'listen on port (udp): {learner.port}')
     while True:
       data, _ = sock.recvfrom(2048)
       cmd = data.decode().strip(' \t\r\n').lower()
@@ -214,7 +214,7 @@ def create_controller(learner: InteractiveLearner) -> Thread:
     sock.close()
   return Thread(target = closure)
 
-def print_logger(learner: Learner, freq: int = 200) -> NoReturn:
+def print_logger(learner: Learner, freq: int = 200, loss_only: bool = False) -> NoReturn:
   if learner.loop % freq == 0:
     info = {'dataloader': 0, 'forward': 0, 'backward': 0, 'update': 0, 'loss': 0}
     for log in learner.logs:
@@ -225,10 +225,14 @@ def print_logger(learner: Learner, freq: int = 200) -> NoReturn:
       info['loss'] += log['loss']
     learner.logs.clear()
     info['loss'] /= freq
-    print(info)
+    if loss_only:
+      print(info['losss'])
+    else:
+      print(info)
 
 def weight_saver(learner: Learner, freq: int = 1) -> NoReturn:
-  learner.save()
+  if learner.epoch % freq == 0:
+    learner.save()
   if learner.eval_dataloader is not None and learner.eval_fn is not None:
     values = learner.eval()
     confidences, predictions, labels = tuple(zip(*values))
