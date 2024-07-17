@@ -46,3 +46,18 @@ def show_images(images: Sequence[Tensor],
     ax.set_axis_off()
     ax.imshow(tf.to_pil_image(image))
   plt.show()
+
+def show_image(image: Tensor,
+               boxes: Tensor = None,
+               labels: List[str] = None,
+               colors: Optional[Union[List[Union[str, Tuple[int, int, int]]], str, Tuple[int, int, int]]] = None,
+               width: int = 1,
+               font: Optional[str] = None,
+               font_size: Optional[int] = None) -> NoReturn:
+  show_images([image], 
+              None if boxes is None else [boxes],
+              None if labels is None else [labels],
+              colors,
+              width,
+              font,
+              font_size)

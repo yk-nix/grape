@@ -6,13 +6,15 @@ import torch
 import PIL
 import re
 import configparser
+import torchvision.transforms.v2.functional as tf
 
 
 from lib.uitls.file import join_path_file
 from lib.datasets import voc
-from lib.uitls.vision import show_images, unnormalize
+from lib.uitls.vision import show_images, unnormalize, show_image
 from lib.datasets.pede import PedDetection
-
+from lib.learners.pedestrain import PedestrainDetector
+from lib.learners.learner import Learner
 
 from typing import Any, Union, Dict, NoReturn, List
 from torchvision import datasets
@@ -25,6 +27,7 @@ from torchvision.models import vgg16
 from torchvision.models.vgg import VGG16_Weights
 from threading import Thread
 from pathlib import Path
+from PIL import Image
 
 # weight_root = 'F:/weight'
 # print(join_path_file(weight_root, 'lenet5', file = ''))
@@ -146,6 +149,31 @@ def load_dicts(file: Union[str, Path]) -> List[Dict]:
     
 
 if __name__ == '__main__':
-  losses = [e['loss'] for e in load_dicts('tmp/log.txt') if e['loss'] < 0.01]
-  plt.plot(losses)
-  plt.show()
+  # losses = [e['loss'] for e in load_dicts('tmp/log.txt') if e['loss'] < 0.01]
+  # plt.plot(losses)
+  # plt.show()
+
+  # detector = PedestrainDetector()
+  # for x, y in detector.learner.train_dataloader:
+  #   boxes = [e['boxes'] for e in y]
+  #   show_images(x, boxes)
+
+  # transforms = v2.Compose([v2.PILToTensor(),
+  #                          v2.RandomHorizontalFlip(),
+  #                         #  v2.RandomVerticalFlip(),
+  #                          v2.ColorJitter(brightness = 0.5, contrast = 0.5, saturation = 0.5, hue = 0.3),
+  #                          v2.RandomGrayscale(),
+  #                          v2.ToDtype(torch.float, scale = True)])
+  # dataset = PedDetection(root, image_set='train', transforms = transforms)
+  # for x, y in dataset:
+  #   show_images([x], [y['boxes']])
+
+  img = tf.pil_to_tensor(Image.open('F:/data/test/astronaut.png'))
+  transforms = v2.Compose([
+    v2.ColorJitter(brightness = 0.5, contrast = 0.5, saturation = 0.5, hue = 0.3),
+    v2.RandomPosterize(6, 0.2),
+    v2.RandomGrayscale(),
+  ])
+  show_images([img] + [transforms(img) for _ in range(7)])
+
+  pass

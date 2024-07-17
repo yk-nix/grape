@@ -22,6 +22,9 @@ class PedestrainDetector(Configurable):
     transforms = v2.Compose([v2.PILToTensor(),
                              v2.RandomHorizontalFlip(),
                              v2.RandomVerticalFlip(),
+                             v2.ColorJitter(brightness = 0.5, contrast = 0.5, saturation = 0.5, hue = 0.3),
+                             v2.RandomPosterize(6, 0.2),
+                             v2.RandomGrayscale(),
                              v2.ToDtype(torch.float, scale = True)])
     dataset = PedDetection(self.config.get('data_root'),
                            image_set='train',
@@ -57,7 +60,7 @@ class PedestrainDetector(Configurable):
                                       epoch_cb = lambda learner: weight_saver(learner = learner, freq = int(self.config.get('saver_freq', 20))))
   
   def train(self, 
-            weight_file: Union[str, Path]= None,
+            weight_file: Union[str, Path]= None, 
             load_cb: Callable = None,
             **kwargs: Any ) -> NoReturn:
     if weight_file is not None:
@@ -66,10 +69,10 @@ class PedestrainDetector(Configurable):
         load_cb(self)
     self.learner.train()
 
-  def test(self, weight_file: Union[str, Path])-> NoReturn:
+  def test(self, weight_file: Union[str, Path], image_set: str = 'val')-> NoReturn:
     transform = v2.Compose([v2.PILToTensor(), v2.ToDtype(torch.float, scale = True)])
     dataset = PedDetection(self.config.get('data_root'),
-                           image_set='val',
+                           image_set = image_set,
                            transform = transform)
     self.learner.load(weight_file,
                       ignore_optimizer = True,
