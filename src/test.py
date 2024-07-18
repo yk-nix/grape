@@ -19,6 +19,7 @@ from lib.learners.learner import Learner
 from typing import Any, Union, Dict, NoReturn, List
 from torchvision import datasets
 from torchvision.transforms import v2
+from torchvision.datasets.imagenet import ImageNet
 from torchvision.tv_tensors import BoundingBoxes
 from torchvision.models.detection import ssd300_vgg16, SSD300_VGG16_Weights
 from torchvision.models.detection.transform import GeneralizedRCNNTransform
@@ -168,12 +169,14 @@ if __name__ == '__main__':
   # for x, y in dataset:
   #   show_images([x], [y['boxes']])
 
-  img = tf.pil_to_tensor(Image.open('F:/data/test/astronaut.png'))
-  transforms = v2.Compose([
-    v2.ColorJitter(brightness = 0.5, contrast = 0.5, saturation = 0.5, hue = 0.3),
-    v2.RandomPosterize(6, 0.2),
-    v2.RandomGrayscale(),
-  ])
-  show_images([img] + [transforms(img) for _ in range(7)])
+  # img = tf.pil_to_tensor(Image.open('F:/data/test/astronaut.png'))
+  # transforms = v2.Compose([
+  #   v2.ColorJitter(brightness = 0.5, contrast = 0.5, saturation = 0.5, hue = 0.3),
+  #   v2.RandomPosterize(6, 0.2),
+  #   v2.RandomGrayscale(),
+  # ])
+  # show_images([img] + [transforms(img) for _ in range(7)])
+
+
 
   pass

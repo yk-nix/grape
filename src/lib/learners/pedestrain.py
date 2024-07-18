@@ -60,13 +60,16 @@ class PedestrainDetector(Configurable):
                                       epoch_cb = lambda learner: weight_saver(learner = learner, freq = int(self.config.get('saver_freq', 20))))
   
   def train(self, 
-            weight_file: Union[str, Path]= None, 
-            load_cb: Callable = None,
+            weight_file: Union[str, Path]= None,
+            before_load_cb: Callable = None,
+            after_load_cb: Callable = None,
             **kwargs: Any ) -> NoReturn:
     if weight_file is not None:
+      if before_load_cb is not None:
+        before_load_cb(self)
       self.learner.load(weight_file, **kwargs)
-      if load_cb is not None:
-        load_cb(self)
+      if after_load_cb is not None:
+        after_load_cb(self)
     self.learner.train()
 
   def test(self, weight_file: Union[str, Path], image_set: str = 'val')-> NoReturn:

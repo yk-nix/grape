@@ -216,19 +216,25 @@ def create_controller(learner: InteractiveLearner) -> Thread:
 
 def print_logger(learner: Learner, freq: int = 200, loss_only: bool = False) -> NoReturn:
   if learner.loop % freq == 0:
-    info = {'dataloader': 0, 'forward': 0, 'backward': 0, 'update': 0, 'loss': 0}
+    info, sep = '', '  '
+    dataloader_time, forward_time, backward_time, update_time, loss = .0, .0, .0, .0, .0
     for log in learner.logs:
-      info['dataloader'] += log['dataloader']
-      info['forward'] += log['forward']
-      info['backward'] += log['backward']
-      info['update'] += log['update']
-      info['loss'] += log['loss']
+      dataloader_time += log['dataloader']
+      forward_time += log['forward']
+      backward_time += log['backward']
+      update_time += log['update']
+      loss += log['loss']
+    N = len(learner.logs)
     learner.logs.clear()
-    info['loss'] /= freq
-    if loss_only:
-      print(info['losss'])
-    else:
-      print(info)
+    info += f'dataloader_time:{dataloader_time / N :.5f}' + sep
+    info += f'forward_time:{forward_time / N :.5f}' + sep
+    info += f'backward_time:{backward_time / N :.5f}' + sep
+    info += f'update_time:{update_time / N :.5f}' + sep
+    if learner.lr_scheduler is not None:
+      info += f'last_epoch:{learner.lr_scheduler.last_epoch:0>5d}' +  sep
+      info += f'learing_rate:{learner.lr_scheduler.get_last_lr()}' + sep
+    info += f'loss:{loss / N :.5f}' + sep
+    print(info)
 
 def weight_saver(learner: Learner, freq: int = 1) -> NoReturn:
   if learner.epoch % freq == 0:
