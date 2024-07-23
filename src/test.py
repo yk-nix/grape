@@ -6,6 +6,7 @@ import torch
 import PIL
 import re
 import configparser
+import os
 import torchvision.transforms.v2.functional as tf
 
 
@@ -176,7 +177,11 @@ if __name__ == '__main__':
   #   v2.RandomGrayscale(),
   # ])
   # show_images([img] + [transforms(img) for _ in range(7)])
+  
+  dataset = ImageNet(root = 'F:/data/ILSVRC2012/ILSVRC2012')
+  print(dataset[0])
+  # fpath = 'F:/data/ILSVRC2012/ILSVRC2012\\ILSVRC2012_devkit_t12.tar.gz'
+  #         'F:\data\ILSVRC2012\ILSVRC2012\ILSVRC2012_devkit_t12.tar'
 
-
-
+  # print(os.path.isfile(fpath))
   pass
