@@ -25,4 +25,4 @@ if __name__ == '__main__':
   detector = PedestrainDetector()
   print(detector.learner.model)
   # detector.train('00308484.pth', after_load_cb = reset_optimizer_and_lr_scheduler)
-  detector.test('00010000.pth', image_set = 'val')
+  detector.test('00501000.pth', image_set = 'val')

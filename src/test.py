@@ -68,6 +68,12 @@ def tf_print(input: Any) -> Any:
 
 root = 'F:/data'
 
+#21:30, untally, medals, entact, 
+#network, noraml, audience, 
+#smondbue, huge, 
+#1947, brink, alleation, somberime, 90(1947-), pomocy, 
+#stumbbing, 1962, alliaetion, 1979, dismember, 
+
 # dataset = datasets.VOCDetection(root, image_set='train', transform=v2.functional.pil_to_tensor)
 # dataset.images = [re.compile(' .*\.').sub('.', e) for e in dataset.images]
 # dataset.targets = [re.compile(' .*\.').sub('.', e) for e in dataset.targets]
@@ -180,6 +186,7 @@ if __name__ == '__main__':
   
   dataset = ImageNet(root = 'F:/data/ILSVRC2012/ILSVRC2012')
   print(dataset[0])
+  "Tough "
   # fpath = 'F:/data/ILSVRC2012/ILSVRC2012\\ILSVRC2012_devkit_t12.tar.gz'
   #         'F:\data\ILSVRC2012\ILSVRC2012\ILSVRC2012_devkit_t12.tar'
 
